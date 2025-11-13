@@ -1,0 +1,187 @@
+---
+title: "GET /userinfo"
+description: "Get user information using an access token"
+---
+
+## Overview
+
+The userinfo endpoint returns information about the user associated with the access token. This endpoint requires the `email` or `openid` scope.
+
+```
+GET https://api.auth-agent.com/userinfo
+```
+
+## Authentication
+
+Requires a valid access token with `email` or `openid` scope.
+
+```
+Authorization: Bearer {access_token}
+```
+
+## Response
+
+### Success (200 OK)
+
+```json
+{
+  "sub": "agent_abc123",
+  "email": "user@example.com",
+  "name": "John Doe"
+}
+```
+
+<ResponseField name="sub" type="string">
+  Agent ID (subject identifier)
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  User's email address (only included if `email` or `openid` scope was granted)
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  User's full name (only included if `email` or `openid` scope was granted)
+</ResponseField>
+
+### Error (401 Unauthorized)
+
+```json
+{
+  "error": "invalid_request",
+  "error_description": "Missing or invalid access token"
+}
+```
+
+## Example Requests
+
+<CodeGroup>
+  ```typescript Next.js
+  const userResponse = await fetch('https://api.auth-agent.com/userinfo', {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+
+  const user = await userResponse.json();
+  // { sub: "agent_abc123", email: "user@example.com", name: "John Doe" }
+  ```
+
+  ```typescript Express
+  app.get('/api/user', async (req, res) => {
+    const accessToken = req.session.tokens.access_token;
+
+    const response = await fetch('https://api.auth-agent.com/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    const user = await response.json();
+    res.json(user);
+  });
+  ```
+
+  ```python Flask
+  @app.route('/api/user')
+  def get_user():
+      access_token = session['tokens']['access_token']
+
+      response = requests.get(
+          'https://api.auth-agent.com/userinfo',
+          headers={'Authorization': f'Bearer {access_token}'}
+      )
+
+      return jsonify(response.json())
+  ```
+</CodeGroup>
+
+## Integration Scenarios
+
+The `/userinfo` endpoint is crucial for implementing different integration patterns:
+
+### Scenario 1: Full Account Access
+
+Use the email to identify the user's existing account and give the agent full access:
+
+```typescript
+const user = await fetch('/userinfo', {
+  headers: { Authorization: `Bearer ${accessToken}` }
+}).then(r => r.json());
+
+// Find existing user account by email
+const existingUser = await db.users.findByEmail(user.email);
+
+// Create session for agent with user's account
+req.session.userId = existingUser.id;
+req.session.isAgent = true;
+```
+
+### Scenario 2: Contextual Profile
+
+Create a separate agent profile but link it to the user's account for context access:
+
+```typescript
+const user = await fetch('/userinfo', {
+  headers: { Authorization: `Bearer ${accessToken}` }
+}).then(r => r.json());
+
+// Find or create agent profile linked to user
+const agentProfile = await db.agentProfiles.findOrCreate({
+  agentId: user.sub,
+  linkedUserId: (await db.users.findByEmail(user.email)).id,
+});
+
+req.session.agentProfileId = agentProfile.id;
+```
+
+### Scenario 3: Fresh Profile
+
+Do not call `/userinfo` - create a fresh agent profile with no user context:
+
+```typescript
+// Extract agent ID from access token JWT
+const decoded = jwt.decode(accessToken);
+
+// Create fresh agent profile
+const agentProfile = await db.agentProfiles.create({
+  agentId: decoded.sub,
+  // No user linkage
+});
+
+req.session.agentProfileId = agentProfile.id;
+```
+
+<Card title="Learn More" icon="diagram-project" href="/guides/integration-scenarios">
+  Complete guide to integration scenarios with visual diagrams
+</Card>
+
+## Scope Requirements
+
+The information returned depends on the scopes granted:
+
+| Scope | Fields Returned |
+|-------|----------------|
+| None | Only `sub` |
+| `email` or `openid` | `sub`, `email`, `name` |
+| `profile` | Currently same as `email` |
+
+## Security Considerations
+
+<Warning>
+  The `/userinfo` endpoint exposes user email addresses. Only request the `email` scope if you need user context for your integration scenario.
+</Warning>
+
+<Note>
+  Access tokens expire after 1 hour. Implement token refresh logic to maintain access.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Scenarios" icon="diagram-project" href="/guides/integration-scenarios">
+    Choose the right integration pattern
+  </Card>
+  <Card title="Token Refresh" icon="arrows-rotate" href="/api-reference/oauth/token">
+    Learn how to refresh expired tokens
+  </Card>
+</CardGroup>

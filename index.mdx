@@ -1,97 +1,154 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Auth Agent"
+description: "OAuth 2.1 Authentication for AI Agents"
 ---
 
-## Setting up
+## Welcome to Auth Agent
 
-Get your documentation site up and running in minutes.
+Auth Agent is a secure OAuth 2.1 authentication system designed specifically for AI agents. It enables websites to safely authenticate and authorize AI agents while giving users full control over their agent's permissions and identity.
+
+<img className="block dark:hidden" src="/assets/logo.png" alt="Auth Agent Logo" />
+<img className="hidden dark:block" src="/assets/logo.png" alt="Auth Agent Logo" />
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card
+    title="OAuth 2.1 with PKCE"
+    icon="shield-check"
+    href="/quickstart"
+  >
+    Built on modern OAuth 2.1 standards with mandatory PKCE for maximum security
+  </Card>
+  <Card
+    title="Agent-First Design"
+    icon="robot"
+    href="/guides/integration-scenarios"
+  >
+    Purpose-built for AI agents with support for multiple integration patterns
+  </Card>
+  <Card
+    title="Refresh Token Rotation"
+    icon="arrows-rotate"
+    href="/api-reference/oauth/token"
+  >
+    Automatic refresh token rotation for enhanced security
+  </Card>
+  <Card
+    title="User Context Sharing"
+    icon="user"
+    href="/api-reference/oauth/userinfo"
+  >
+    Share user context with websites via the /userinfo endpoint
+  </Card>
+</CardGroup>
+
+## Integration Scenarios
+
+Auth Agent supports three distinct integration patterns to meet different use cases:
+
+### 1. Full Account Access
+The agent operates within the user's existing account with full access to their data and context.
+
+### 2. Contextual Profile
+The website creates a separate agent profile but provides access to the user's context and data.
+
+### 3. Fresh Profile
+The website creates a completely fresh agent profile with no access to user context.
 
 <Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
+  title="Learn more about integration scenarios"
+  icon="diagram-project"
+  href="/guides/integration-scenarios"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Detailed documentation with visual diagrams and code examples
 </Card>
 
-## Make it yours
+## Quick Links
 
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Quickstart Guide"
+    icon="rocket"
+    href="/quickstart"
   >
-    Edit your docs locally and preview them in real time.
+    Get started in minutes with our step-by-step guide
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
+    title="API Reference"
     icon="code"
-    href="/essentials/code"
+    href="/api-reference/overview"
   >
-    Add sample code to demonstrate how to use your product.
+    Complete API documentation for all endpoints
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Console Setup"
+    icon="terminal"
+    href="/guides/console"
   >
-    Display images and other media.
+    Set up your agent or website credentials
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="Integration Examples"
+    icon="book-code"
+    href="/guides/examples"
   >
-    Write once and reuse across your docs.
+    Real-world code examples for common frameworks
   </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Architecture
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+Auth Agent is built with modern, scalable technologies:
+
+- **Backend**: Cloudflare Workers for global edge deployment
+- **Database**: Supabase (PostgreSQL) for reliable data storage
+- **Tokens**: JWT with HS256 signing
+- **Security**: PKCE, refresh token rotation, secure random generation
+
+## Who is Auth Agent for?
+
+<Tabs>
+  <Tab title="AI Agent Users">
+    Create and manage agent credentials to authenticate your AI agents across websites. Control which websites your agents can access and monitor their activity.
+  </Tab>
+  <Tab title="Website Developers">
+    Integrate Auth Agent to allow AI agents to authenticate with your website. Choose from three integration patterns based on your requirements.
+  </Tab>
+</Tabs>
+
+## Getting Started
+
+<Steps>
+  <Step title="Create Credentials">
+    Visit the [console](https://auth-agent.com/console) to create agent or OAuth client credentials
+  </Step>
+  <Step title="Integrate Auth Agent">
+    Follow our [quickstart guide](/quickstart) to integrate Auth Agent into your application
+  </Step>
+  <Step title="Test the Flow">
+    Use the authorization flow to authenticate your first agent
+  </Step>
+</Steps>
+
+## Support
+
+Need help? We're here for you:
+
+<CardGroup cols={2}>
+  <Card
+    title="Documentation"
+    icon="book"
+    href="/api-reference/overview"
+  >
+    Browse our complete documentation
+  </Card>
+  <Card
+    title="GitHub"
+    icon="github"
+    href="https://github.com/auth-agent/auth-agent"
+  >
+    View source code and contribute
+  </Card>
+</CardGroup>

@@ -1,0 +1,299 @@
+---
+title: "Using the Console"
+description: "Manage agents and OAuth clients through the web console"
+---
+
+## Overview
+
+Auth Agent provides two web consoles for managing your credentials:
+
+<CardGroup cols={2}>
+  <Card title="Agent Console" icon="robot" href="https://auth-agent.com/console/agent">
+    For AI agent users - create and manage agent credentials
+  </Card>
+  <Card title="Website Console" icon="globe" href="https://auth-agent.com/console/website">
+    For website developers - register and manage OAuth clients
+  </Card>
+</CardGroup>
+
+---
+
+## Agent Console
+
+The Agent Console allows you to create and manage agent credentials that AI agents use to authenticate across websites.
+
+### Creating an Agent
+
+<Steps>
+  <Step title="Navigate to Agent Console">
+    Go to [https://auth-agent.com/console/agent](https://auth-agent.com/console/agent)
+  </Step>
+  <Step title="Click Create New Agent">
+    Click the "Create New Agent" button in the top right
+  </Step>
+  <Step title="Enter Details">
+    Provide your email address and name:
+    - **User Email**: Your email address (used for user context)
+    - **User Name**: Your full name (e.g., "John Doe")
+  </Step>
+  <Step title="Save Credentials">
+    Copy and securely store your `agent_id` and `agent_secret`. You'll need these to authenticate your agent.
+  </Step>
+</Steps>
+
+<Warning>
+  Your `agent_secret` is shown only once during creation. Store it securely - it cannot be recovered if lost.
+</Warning>
+
+### Managing Agents
+
+#### View Agent Details
+
+Each agent card displays:
+- User name and email
+- Email verification status
+- Agent ID (can be copied)
+- Agent Secret (hidden by default, click eye icon to reveal)
+- Creation date
+- Last used date
+
+#### Update Email
+
+<Steps>
+  <Step title="Click Email Icon">
+    Click the blue email icon next to an agent
+  </Step>
+  <Step title="Enter New Email">
+    Type your new email address
+  </Step>
+  <Step title="Send Verification">
+    Click "Send Verification" - a verification email will be sent
+  </Step>
+  <Step title="Verify Email">
+    Click the verification link in the email, or click "Verify Now (Demo)" in the console
+  </Step>
+</Steps>
+
+<Note>
+  Your Auth Agent account email remains unchanged. Only the email shared with websites (via `/userinfo`) is updated.
+</Note>
+
+#### Regenerate Secret
+
+If your agent secret is compromised:
+
+1. Click the yellow refresh icon next to an agent
+2. Confirm regeneration
+3. Copy the new secret
+4. Update your agent configuration with the new secret
+
+<Warning>
+  The old secret is immediately invalidated. All agents using the old secret will stop working.
+</Warning>
+
+#### Delete Agent
+
+1. Click the red trash icon next to an agent
+2. Confirm deletion
+3. The agent and all associated data are permanently deleted
+
+---
+
+## Website Console
+
+The Website Console allows website developers to register OAuth clients and integrate Auth Agent authentication.
+
+### Registering an OAuth Client
+
+<Steps>
+  <Step title="Navigate to Website Console">
+    Go to [https://auth-agent.com/console/website](https://auth-agent.com/console/website)
+  </Step>
+  <Step title="Click Register New Client">
+    Click the "Register New Client" button
+  </Step>
+  <Step title="Enter Client Details">
+    - **Client Name**: Your website name (e.g., "My Awesome Website")
+    - **Redirect URIs**: One or more URIs where users are sent after authorization
+  </Step>
+  <Step title="Save Credentials">
+    Copy and securely store your `client_id` and `client_secret`
+  </Step>
+</Steps>
+
+<Warning>
+  Your `client_secret` should NEVER be exposed in client-side code. Only use it server-side.
+</Warning>
+
+### Redirect URI Requirements
+
+Redirect URIs must follow these rules:
+
+- Must use HTTPS in production
+- HTTP is allowed only for `localhost` (development)
+- Must exactly match the URI used in authorization requests
+- Can specify multiple URIs for different environments
+
+**Valid Examples:**
+```
+https://yourwebsite.com/api/auth/callback
+https://yourwebsite.com/oauth/callback
+http://localhost:3000/api/auth/callback
+http://localhost:8080/callback
+```
+
+**Invalid Examples:**
+```
+http://yourwebsite.com/callback    ❌ HTTP not allowed (except localhost)
+https://yourwebsite.com/callback/   ❌ Trailing slash mismatch
+yourwebsite.com/callback            ❌ Missing protocol
+```
+
+### Managing OAuth Clients
+
+#### View Client Details
+
+Each client card displays:
+- Client name
+- Number of authentications
+- Client ID (can be copied)
+- Client Secret (hidden by default)
+- Allowed redirect URIs
+- Creation date
+
+#### Edit Client
+
+1. Click the blue edit icon
+2. Update client name or redirect URIs
+3. Click "Update Client"
+
+#### Delete Client
+
+1. Click the red trash icon
+2. Confirm deletion
+3. The client and all associated sessions are permanently deleted
+
+---
+
+## Integration Guide
+
+### For Agent Users
+
+After creating agent credentials, use them in your AI agent framework:
+
+```python
+from auth_agent_tools import AuthAgentTools
+
+tools = AuthAgentTools(
+    agent_id="your_agent_id",
+    agent_secret="your_agent_secret",
+    model="gpt-4"
+)
+```
+
+### For Website Developers
+
+After registering an OAuth client, implement the OAuth flow:
+
+```typescript
+// Authorization
+const params = new URLSearchParams({
+  client_id: process.env.AUTH_AGENT_CLIENT_ID,
+  redirect_uri: 'https://yourwebsite.com/api/auth/callback',
+  response_type: 'code',
+  code_challenge: codeChallenge,
+  code_challenge_method: 'S256',
+  scope: 'openid email profile',
+  state: randomState,
+});
+
+window.location.href = `https://api.auth-agent.com/authorize?${params}`;
+```
+
+<Card title="Complete Integration Guide" icon="book" href="/guides/integration-scenarios">
+  Learn about the three integration scenarios
+</Card>
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Secret Management">
+    - Store secrets in environment variables
+    - Never commit secrets to version control
+    - Use secret management systems in production
+    - Rotate secrets periodically
+  </Accordion>
+
+  <Accordion title="Multiple Environments">
+    - Create separate OAuth clients for dev, staging, and production
+    - Use different redirect URIs for each environment
+    - Keep test agents separate from production agents
+  </Accordion>
+
+  <Accordion title="Monitoring">
+    - Regularly check "Last Used" dates for agents
+    - Remove unused agents and clients
+    - Monitor authentication counts for unusual activity
+  </Accordion>
+
+  <Accordion title="Security">
+    - Enable email verification for agents
+    - Review and update redirect URIs regularly
+    - Audit agent access to your website
+    - Implement your own rate limiting
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Agent Authentication Failing">
+    - Verify `agent_id` and `agent_secret` are correct
+    - Check if secret was regenerated
+    - Ensure agent hasn't been deleted
+    - Check for typos in credentials
+  </Accordion>
+
+  <Accordion title="Redirect URI Mismatch">
+    - Ensure redirect URI exactly matches registered URI
+    - Check for trailing slashes
+    - Verify protocol (http vs https)
+    - Make sure URI is registered in the console
+  </Accordion>
+
+  <Accordion title="Invalid Client Error">
+    - Verify `client_id` and `client_secret` are correct
+    - Check if client was deleted
+    - Ensure you're using server-side authentication
+  </Accordion>
+
+  <Accordion title="Email Not Updating">
+    - Check verification email (may be in spam)
+    - Ensure new email is valid
+    - Try sending verification again
+    - Contact support if issue persists
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Complete API documentation
+  </Card>
+  <Card title="Integration Scenarios" icon="diagram-project" href="/guides/integration-scenarios">
+    Choose the right integration pattern
+  </Card>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Implement OAuth flow
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/auth-agent/auth-agent">
+    View source code and examples
+  </Card>
+</CardGroup>

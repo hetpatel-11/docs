@@ -1,0 +1,170 @@
+---
+title: "POST /revoke"
+description: "Revoke access or refresh tokens"
+---
+
+## Overview
+
+The revocation endpoint allows clients to revoke access or refresh tokens. This follows RFC 7009 (OAuth 2.0 Token Revocation).
+
+```
+POST https://api.auth-agent.com/revoke
+```
+
+## Request Body
+
+Content-Type: `application/json`
+
+<ParamField body="token" type="string" required>
+  The access or refresh token to revoke
+</ParamField>
+
+<ParamField body="client_id" type="string" required>
+  Your OAuth client ID
+</ParamField>
+
+<ParamField body="client_secret" type="string" required>
+  Your OAuth client secret
+</ParamField>
+
+## Response
+
+### Success (200 OK)
+
+```json
+{
+  "revoked": true
+}
+```
+
+The endpoint returns success even if the token was already revoked or doesn't exist, following RFC 7009 security recommendations.
+
+### Error (401 Unauthorized)
+
+```json
+{
+  "error": "invalid_client",
+  "error_description": "Invalid client credentials"
+}
+```
+
+## Example Requests
+
+<CodeGroup>
+  ```typescript Revoke Refresh Token
+  // Revoke refresh token (also revokes associated access token)
+  await fetch('https://api.auth-agent.com/revoke', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: refreshToken,
+      client_id: process.env.AUTH_AGENT_CLIENT_ID,
+      client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+    }),
+  });
+
+  // Clear stored tokens
+  delete req.session.tokens;
+  ```
+
+  ```typescript Logout Handler
+  app.post('/api/auth/logout', async (req, res) => {
+    const { refresh_token } = req.session.tokens;
+
+    // Revoke the refresh token
+    await fetch('https://api.auth-agent.com/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: refresh_token,
+        client_id: process.env.AUTH_AGENT_CLIENT_ID,
+        client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+      }),
+    });
+
+    // Clear session
+    req.session.destroy();
+
+    res.json({ success: true });
+  });
+  ```
+
+  ```python Flask
+  @app.route('/api/auth/logout', methods=['POST'])
+  def logout():
+      refresh_token = session['tokens']['refresh_token']
+
+      # Revoke the refresh token
+      requests.post(
+          'https://api.auth-agent.com/revoke',
+          json={
+              'token': refresh_token,
+              'client_id': os.environ['AUTH_AGENT_CLIENT_ID'],
+              'client_secret': os.environ['AUTH_AGENT_CLIENT_SECRET'],
+          }
+      )
+
+      # Clear session
+      session.clear()
+
+      return jsonify({'success': True})
+  ```
+</CodeGroup>
+
+## Revocation Behavior
+
+<AccordionGroup>
+  <Accordion title="Revoking Refresh Tokens">
+    When you revoke a refresh token, the associated access token is also revoked. This ensures complete session termination.
+  </Accordion>
+
+  <Accordion title="Revoking Access Tokens">
+    When you revoke an access token, only that specific token is invalidated. The refresh token remains valid.
+  </Accordion>
+
+  <Accordion title="Idempotent Operation">
+    Calling revoke on an already-revoked token returns success. This is intentional for security reasons per RFC 7009.
+  </Accordion>
+
+  <Accordion title="Token Family Revocation">
+    Due to refresh token rotation, revoking any token in a refresh chain does not automatically revoke other tokens in that family. Each token must be explicitly revoked.
+  </Accordion>
+</AccordionGroup>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="User Logout" icon="right-from-bracket">
+    Revoke tokens when a user logs out to invalidate their session
+  </Card>
+  <Card title="Security Incident" icon="shield-exclamation">
+    Immediately revoke tokens if a security breach is detected
+  </Card>
+  <Card title="Token Cleanup" icon="broom">
+    Revoke old tokens during token refresh or session cleanup
+  </Card>
+  <Card title="Account Deletion" icon="user-xmark">
+    Revoke all tokens when an account is deleted or disabled
+  </Card>
+</CardGroup>
+
+## Security Considerations
+
+<Warning>
+  Always revoke refresh tokens during logout. Revoking only the access token leaves the session partially active.
+</Warning>
+
+<Note>
+  Client authentication is required to prevent unauthorized token revocation.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Token Lifecycle" icon="clock-rotate-left" href="/guides/tokens">
+    Learn about token expiration and management
+  </Card>
+  <Card title="Security Best Practices" icon="shield-check" href="/guides/security">
+    Implement secure token handling
+  </Card>
+</CardGroup>

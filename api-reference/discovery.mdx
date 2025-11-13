@@ -1,0 +1,106 @@
+---
+title: "Discovery Endpoints"
+description: "OAuth server metadata and JWKS endpoints"
+---
+
+## OAuth Authorization Server Metadata
+
+OAuth 2.0 server metadata endpoint following RFC 8414.
+
+```
+GET https://api.auth-agent.com/.well-known/oauth-authorization-server
+```
+
+### Response
+
+```json
+{
+  "issuer": "https://api.auth-agent.com",
+  "authorization_endpoint": "https://api.auth-agent.com/authorize",
+  "token_endpoint": "https://api.auth-agent.com/token",
+  "userinfo_endpoint": "https://api.auth-agent.com/userinfo",
+  "introspection_endpoint": "https://api.auth-agent.com/introspect",
+  "revocation_endpoint": "https://api.auth-agent.com/revoke",
+  "jwks_uri": "https://api.auth-agent.com/.well-known/jwks.json",
+  "response_types_supported": ["code"],
+  "grant_types_supported": ["authorization_code", "refresh_token"],
+  "token_endpoint_auth_methods_supported": ["client_secret_post"],
+  "code_challenge_methods_supported": ["S256"],
+  "scopes_supported": ["openid", "email", "profile"]
+}
+```
+
+## JSON Web Key Set (JWKS)
+
+Public keys for JWT verification.
+
+```
+GET https://api.auth-agent.com/.well-known/jwks.json
+```
+
+### Response
+
+```json
+{
+  "keys": []
+}
+```
+
+<Note>
+  Currently, Auth Agent uses symmetric signing (HS256) with a shared secret. The JWKS endpoint is provided for compatibility but returns an empty key set. Tokens should be validated by verifying the signature with the JWT secret or by using the introspection endpoint.
+</Note>
+
+## Token Validation
+
+Since Auth Agent uses HS256 (symmetric signing), you have two options for validating tokens:
+
+<AccordionGroup>
+  <Accordion title="Token Introspection (Recommended)">
+    Use the `/introspect` endpoint to validate tokens server-side:
+
+    ```typescript
+    const response = await fetch('https://api.auth-agent.com/introspect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: accessToken,
+        client_id: process.env.AUTH_AGENT_CLIENT_ID,
+        client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+      }),
+    });
+
+    const result = await response.json();
+    console.log('Token active:', result.active);
+    ```
+  </Accordion>
+
+  <Accordion title="Local JWT Verification">
+    Verify JWT signatures locally using the shared secret (not recommended for production):
+
+    ```typescript
+    import * as jwt from 'jsonwebtoken';
+
+    try {
+      const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+      console.log('Token valid:', decoded);
+    } catch (error) {
+      console.error('Token invalid:', error);
+    }
+    ```
+
+    <Warning>
+      Local verification does not check if the token has been revoked. Use introspection for production systems.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Token Introspection" icon="magnifying-glass" href="/api-reference/oauth/introspect">
+    POST /introspect - Validate tokens
+  </Card>
+  <Card title="API Overview" icon="book" href="/api-reference/overview">
+    Complete API reference
+  </Card>
+</CardGroup>

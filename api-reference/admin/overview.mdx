@@ -1,0 +1,50 @@
+---
+title: "Admin API Overview"
+description: "Administrative endpoints for managing agents and OAuth clients"
+---
+
+## Overview
+
+Admin endpoints allow programmatic management of agents and OAuth clients. These endpoints are primarily for internal use or for building custom admin interfaces.
+
+<Warning>
+  Admin endpoints currently do not require authentication. In production, these should be protected with proper authentication and authorization.
+</Warning>
+
+## Available Endpoints
+
+### Agent Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| [`/api/admin/agents`](/api-reference/admin/agents) | POST | Create a new agent |
+| [`/api/admin/agents`](/api-reference/admin/agents) | GET | List all agents |
+
+### OAuth Client Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| [`/api/admin/clients`](/api-reference/admin/clients) | POST | Register a new OAuth client |
+| [`/api/admin/clients`](/api-reference/admin/clients) | GET | List all OAuth clients |
+| [`/api/admin/clients/update`](/api-reference/admin/clients-update) | POST | Update an OAuth client |
+
+## Console Alternative
+
+For most users, the web console provides a user-friendly interface for managing agents and clients:
+
+<CardGroup cols={2}>
+  <Card title="Agent Console" icon="robot" href="https://auth-agent.com/console/agent">
+    Create and manage agent credentials
+  </Card>
+  <Card title="Website Console" icon="globe" href="https://auth-agent.com/console/website">
+    Register and manage OAuth clients
+  </Card>
+</CardGroup>
+
+## Use Cases
+
+- Custom admin interfaces
+- Automated provisioning scripts
+- CI/CD integration
+- Batch operations
+- Programmatic client registration
