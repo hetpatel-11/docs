@@ -3,18 +3,14 @@
   "theme": "mint",
   "name": "Auth Agent",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
   },
   "favicon": "/favicon.svg",
   "colors": {
     "primary": "#F97316",
     "light": "#FB923C",
-    "dark": "#EA580C",
-    "anchors": {
-      "from": "#F97316",
-      "to": "#EA580C"
-    }
+    "dark": "#EA580C"
   },
   "navigation": {
     "tabs": [
@@ -25,7 +21,9 @@
             "group": "Getting Started",
             "pages": [
               "index",
-              "quickstart"
+              "quickstart",
+              "guides/agent-quickstart",
+              "guides/website-quickstart"
             ]
           },
           {
@@ -77,9 +75,8 @@
             ]
           },
           {
-            "group": "Admin & Discovery",
+            "group": "Discovery",
             "pages": [
-              "api-reference/admin/overview",
               "api-reference/discovery"
             ]
           }

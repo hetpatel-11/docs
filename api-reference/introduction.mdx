@@ -1,33 +1,43 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference Introduction'
+description: 'Auth Agent OAuth 2.1 API Reference'
 ---
-
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
 
 ## Welcome
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+This is the complete API reference for Auth Agent's OAuth 2.1 authorization server. All endpoints follow OAuth 2.1 and OpenID Connect standards.
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="OAuth Endpoints" icon="shield-check" href="/api-reference/oauth/authorize">
+    Standard OAuth 2.1 endpoints
+  </Card>
+  <Card title="Agent Endpoints" icon="robot" href="/api-reference/agent/authenticate">
+    Agent back-channel authentication
+  </Card>
+  <Card title="Discovery" icon="magnifying-glass" href="/api-reference/discovery">
+    OAuth server metadata
+  </Card>
+  <Card title="API Overview" icon="book" href="/api-reference/overview">
+    Complete endpoint list
+  </Card>
+</CardGroup>
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+Auth Agent uses OAuth 2.1 with PKCE (Proof Key for Code Exchange) for all authorization flows. All endpoints require proper authentication as described in their respective documentation.
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+## Base URL
+
 ```
+https://api.auth-agent.com
+```
+
+## Standards Compliance
+
+- **OAuth 2.1** - Authorization code flow with PKCE
+- **OpenID Connect** - UserInfo endpoint and ID tokens
+- **RFC 7662** - Token introspection
+- **RFC 7009** - Token revocation
+- **RFC 8414** - OAuth 2.0 authorization server metadata

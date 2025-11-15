@@ -22,9 +22,6 @@ Auth Agent uses OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure aut
   <Card title="Agent Back-Channel" icon="robot" href="/api-reference/agent/authenticate">
     Agent-to-server communication endpoints for authentication flow
   </Card>
-  <Card title="Admin Endpoints" icon="key" href="/api-reference/admin/agents">
-    Administrative endpoints for managing agents and clients
-  </Card>
   <Card title="Discovery" icon="magnifying-glass" href="/api-reference/discovery">
     OAuth server metadata and JWKS endpoints
   </Card>
@@ -34,43 +31,49 @@ Auth Agent uses OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure aut
 
 Public endpoints implementing the OAuth 2.1 standard:
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| [`/authorize`](/api-reference/oauth/authorize) | GET | Start OAuth authorization flow |
-| [`/token`](/api-reference/oauth/token) | POST | Exchange authorization code or refresh token for access tokens |
-| [`/userinfo`](/api-reference/oauth/userinfo) | GET | Get user information (email, name) |
-| [`/introspect`](/api-reference/oauth/introspect) | POST | Validate and inspect tokens |
-| [`/revoke`](/api-reference/oauth/revoke) | POST | Revoke access or refresh tokens |
+<CardGroup cols={1}>
+  <Card title="/authorize" icon="arrow-right" href="/api-reference/oauth/authorize">
+    **GET** - Start OAuth authorization flow
+  </Card>
+  <Card title="/token" icon="arrow-right" href="/api-reference/oauth/token">
+    **POST** - Exchange authorization code or refresh token for access tokens
+  </Card>
+  <Card title="/userinfo" icon="arrow-right" href="/api-reference/oauth/userinfo">
+    **GET** - Get user information (email, name)
+  </Card>
+  <Card title="/introspect" icon="arrow-right" href="/api-reference/oauth/introspect">
+    **POST** - Validate and inspect tokens
+  </Card>
+  <Card title="/revoke" icon="arrow-right" href="/api-reference/oauth/revoke">
+    **POST** - Revoke access or refresh tokens
+  </Card>
+</CardGroup>
 
 ## Agent Back-Channel Endpoints
 
 Endpoints used by agents to authenticate via back-channel:
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| [`/api/agent/authenticate`](/api-reference/agent/authenticate) | POST | Authenticate agent and create authorization code |
-| [`/api/check-status`](/api-reference/agent/check-status) | GET | Poll for authorization status |
-
-## Admin Endpoints
-
-Administrative endpoints for managing resources (requires admin authentication):
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| [`/api/admin/agents`](/api-reference/admin/agents) | POST | Create new agent |
-| [`/api/admin/agents`](/api-reference/admin/agents) | GET | List all agents |
-| [`/api/admin/clients`](/api-reference/admin/clients) | POST | Register new OAuth client |
-| [`/api/admin/clients`](/api-reference/admin/clients) | GET | List all OAuth clients |
-| [`/api/admin/clients/update`](/api-reference/admin/clients-update) | POST | Update OAuth client |
+<CardGroup cols={1}>
+  <Card title="/api/agent/authenticate" icon="arrow-right" href="/api-reference/agent/authenticate">
+    **POST** - Authenticate agent and create authorization code
+  </Card>
+  <Card title="/api/check-status" icon="arrow-right" href="/api-reference/agent/check-status">
+    **GET** - Poll for authorization status
+  </Card>
+</CardGroup>
 
 ## Discovery Endpoints
 
 OAuth server metadata and key information:
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| [`/.well-known/oauth-authorization-server`](/api-reference/discovery) | GET | OAuth 2.0 server metadata |
-| [`/.well-known/jwks.json`](/api-reference/discovery) | GET | JSON Web Key Set |
+<CardGroup cols={1}>
+  <Card title="/.well-known/oauth-authorization-server" icon="arrow-right" href="/api-reference/discovery">
+    **GET** - OAuth 2.0 server metadata
+  </Card>
+  <Card title="/.well-known/jwks.json" icon="arrow-right" href="/api-reference/discovery">
+    **GET** - JSON Web Key Set
+  </Card>
+</CardGroup>
 
 ## Rate Limiting
 

@@ -7,8 +7,8 @@ description: "OAuth 2.1 Authentication for AI Agents"
 
 Auth Agent is a secure OAuth 2.1 authentication system designed specifically for AI agents. It enables websites to safely authenticate and authorize AI agents while giving users full control over their agent's permissions and identity.
 
-<img className="block dark:hidden" src="/assets/logo.png" alt="Auth Agent Logo" />
-<img className="hidden dark:block" src="/assets/logo.png" alt="Auth Agent Logo" />
+<img className="block dark:hidden" src="/logo/light.png" alt="Auth Agent Logo" />
+<img className="hidden dark:block" src="/logo/dark.png" alt="Auth Agent Logo" />
 
 ## Key Features
 
@@ -69,11 +69,25 @@ The website creates a completely fresh agent profile with no access to user cont
 
 <CardGroup cols={2}>
   <Card
-    title="Quickstart Guide"
-    icon="rocket"
-    href="/quickstart"
+    title="Agent Quickstart"
+    icon="robot"
+    href="/guides/agent-quickstart"
   >
-    Get started in minutes with our step-by-step guide
+    Get your AI agent authenticated with browser-use
+  </Card>
+  <Card
+    title="Website Quickstart"
+    icon="globe"
+    href="/guides/website-quickstart"
+  >
+    Integrate Auth Agent into your website
+  </Card>
+  <Card
+    title="Integration Scenarios"
+    icon="diagram-project"
+    href="/guides/integration-scenarios"
+  >
+    Learn about the three integration patterns
   </Card>
   <Card
     title="API Reference"
@@ -90,11 +104,11 @@ The website creates a completely fresh agent profile with no access to user cont
     Set up your agent or website credentials
   </Card>
   <Card
-    title="Integration Examples"
+    title="Examples"
     icon="book-code"
-    href="/guides/examples"
+    href="https://github.com/auth-agent/auth-agent"
   >
-    Real-world code examples for common frameworks
+    Real-world code examples on GitHub
   </Card>
 </CardGroup>
 
@@ -110,11 +124,31 @@ Auth Agent is built with modern, scalable technologies:
 ## Who is Auth Agent for?
 
 <Tabs>
-  <Tab title="AI Agent Users">
+  <Tab title="🤖 AI Agent Users">
+    <Card title="Get Started" icon="rocket" href="/guides/agent-quickstart">
+      Learn how to authenticate your AI agents with websites using browser-use integration
+    </Card>
+    
     Create and manage agent credentials to authenticate your AI agents across websites. Control which websites your agents can access and monitor their activity.
+    
+    **Key Features:**
+    - Simple browser-use integration
+    - Automatic authentication handling
+    - Works with any website using Auth Agent
+    - Full control over agent credentials
   </Tab>
-  <Tab title="Website Developers">
+  <Tab title="🌐 Website Developers">
+    <Card title="Get Started" icon="rocket" href="/guides/website-quickstart">
+      Learn how to integrate Auth Agent into your website with three integration scenarios
+    </Card>
+    
     Integrate Auth Agent to allow AI agents to authenticate with your website. Choose from three integration patterns based on your requirements.
+    
+    **Key Features:**
+    - Three integration scenarios (Full Account, Contextual Profile, Fresh Profile)
+    - Easy OAuth 2.1 implementation
+    - Secure PKCE flow
+    - Flexible access control
   </Tab>
 </Tabs>
 
