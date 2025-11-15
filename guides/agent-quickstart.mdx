@@ -39,12 +39,31 @@ When your agent encounters a website that requires Auth Agent authentication:
 
 ## Step 2: Install Dependencies
 
-```bash
-# Install Auth Agent SDK
-pip install auth-agent-sdk
+### Install Browser-Use
 
-# Install browser-use (if not already installed)
-pip install browser-use
+Browser-use requires `uv` for installation:
+
+```bash
+# Install uv (if not already installed)
+pip install uv
+
+# Create virtual environment
+uv venv --python 3.12
+
+# Activate environment
+source .venv/bin/activate
+# On Windows: .venv\Scripts\activate
+
+# Install browser-use & chromium
+uv pip install browser-use
+uvx browser-use install
+```
+
+### Install Auth Agent SDK
+
+```bash
+# Install Auth Agent SDK with browser-use integration
+uv pip install auth-agent-sdk[browser-use]
 ```
 
 ## Step 3: Set Up Environment Variables
@@ -52,22 +71,28 @@ pip install browser-use
 Create a `.env` file in your project:
 
 ```bash
-AGENT_ID=your_agent_id_here
-AGENT_SECRET=your_agent_secret_here
-AGENT_MODEL=gpt-4  # or your model identifier
+# Create .env file
+touch .env
+# On Windows: echo. > .env
 ```
 
-## Step 4: Install Browser-Use Integration (Optional)
-
-If you're using browser-use, install the optional dependency:
+Add your credentials to the `.env` file:
 
 ```bash
-pip install auth-agent-sdk[browser-use]
+# Auth Agent credentials
+AGENT_ID=your_agent_id_here
+AGENT_SECRET=your_agent_secret_here
+AGENT_MODEL=browser-use  # or gpt-4, claude, etc.
+
+# Browser-Use API key (get $10 free credits at https://cloud.browser-use.com/new-api-key)
+BROWSER_USE_API_KEY=your_browser_use_api_key_here
 ```
 
-This installs both the SDK and browser-use integration tools.
+<Note>
+We recommend using `ChatBrowserUse` which is optimized for browser automation (highest accuracy + fastest speed + lowest token cost). Get $10 free credits at [https://cloud.browser-use.com/new-api-key](https://cloud.browser-use.com/new-api-key)
+</Note>
 
-## Step 5: Import Auth Agent Tools
+## Step 4: Import Auth Agent Tools
 
 The `AuthAgentTools` class is included in the SDK package. Simply import it:
 
@@ -77,16 +102,11 @@ from auth_agent_sdk.agent import AuthAgentTools
 
 <Note>
 If you get an `ImportError`, make sure you:
-1. Installed the browser-use extra: `pip install auth-agent-sdk[browser-use]`
-2. Have version 2.5.1 or later: `pip install --upgrade auth-agent-sdk[browser-use]`
-
-**Alternative import** (for older versions < 2.5.1):
-```python
-from auth_agent_sdk.agent.browser_use import AuthAgentTools
-```
+- Installed with browser-use extra: `uv pip install auth-agent-sdk[browser-use]`
+- Have version 2.5.1 or later: `uv pip install --upgrade auth-agent-sdk[browser-use]`
 </Note>
 
-## Step 6: Use in Your Agent
+## Step 5: Use in Your Agent
 
 Create your agent script:
 
