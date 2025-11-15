@@ -63,7 +63,8 @@ uvx browser-use install
 
 ```bash
 # Install Auth Agent SDK with browser-use integration
-uv pip install auth-agent-sdk[browser-use]
+# Note: Quote the package name in zsh to avoid bracket expansion
+uv pip install "auth-agent-sdk[browser-use]"
 ```
 
 ## Step 3: Set Up Environment Variables
@@ -102,8 +103,8 @@ from auth_agent_sdk.agent import AuthAgentTools
 
 <Note>
 If you get an `ImportError`, make sure you:
-- Installed with browser-use extra: `uv pip install auth-agent-sdk[browser-use]`
-- Have version 2.5.1 or later: `uv pip install --upgrade auth-agent-sdk[browser-use]`
+- Installed with browser-use extra: `uv pip install "auth-agent-sdk[browser-use]"`
+- Have version 2.5.1 or later: `uv pip install --upgrade "auth-agent-sdk[browser-use]"`
 </Note>
 
 ## Step 5: Use in Your Agent
