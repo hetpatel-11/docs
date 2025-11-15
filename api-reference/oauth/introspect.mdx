@@ -1,0 +1,181 @@
+---
+title: "POST /introspect"
+description: "Validate and inspect access tokens"
+---
+
+## Overview
+
+The introspection endpoint validates an access token and returns its metadata. This follows RFC 7662 (OAuth 2.0 Token Introspection).
+
+```
+POST https://api.auth-agent.com/introspect
+```
+
+## Request Body
+
+Content-Type: `application/json`
+
+<ParamField body="token" type="string" required>
+  The access token to introspect
+</ParamField>
+
+<ParamField body="client_id" type="string" optional>
+  Your OAuth client ID for authentication
+</ParamField>
+
+<ParamField body="client_secret" type="string" optional>
+  Your OAuth client secret for authentication
+</ParamField>
+
+## Response
+
+### Active Token (200 OK)
+
+```json
+{
+  "active": true,
+  "sub": "agent_abc123",
+  "client_id": "client_xyz789",
+  "exp": 1234571490,
+  "iat": 1234567890,
+  "scope": "openid email profile",
+  "model": "gpt-4"
+}
+```
+
+<ResponseField name="active" type="boolean">
+  `true` if the token is valid and not expired
+</ResponseField>
+
+<ResponseField name="sub" type="string">
+  Agent ID (subject)
+</ResponseField>
+
+<ResponseField name="client_id" type="string">
+  OAuth client ID that issued the token
+</ResponseField>
+
+<ResponseField name="exp" type="number">
+  Expiration timestamp (Unix time)
+</ResponseField>
+
+<ResponseField name="iat" type="number">
+  Issued at timestamp (Unix time)
+</ResponseField>
+
+<ResponseField name="scope" type="string">
+  Space-separated list of scopes
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  AI model used by the agent
+</ResponseField>
+
+### Inactive Token (200 OK)
+
+```json
+{
+  "active": false
+}
+```
+
+Returned when the token is:
+- Invalid or malformed
+- Expired
+- Revoked
+- Not found in database
+
+## Example Requests
+
+<CodeGroup>
+  ```typescript Next.js
+  const response = await fetch('https://api.auth-agent.com/introspect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: accessToken,
+      client_id: process.env.AUTH_AGENT_CLIENT_ID,
+      client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (result.active) {
+    console.log('Token is valid');
+    console.log('Agent ID:', result.sub);
+    console.log('Expires at:', new Date(result.exp * 1000));
+  } else {
+    console.log('Token is invalid or expired');
+  }
+  ```
+
+  ```typescript Middleware
+  async function validateToken(req, res, next) {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    const response = await fetch('https://api.auth-agent.com/introspect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        client_id: process.env.AUTH_AGENT_CLIENT_ID,
+        client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result.active) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    req.tokenInfo = result;
+    next();
+  }
+  ```
+</CodeGroup>
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Token Validation">
+    Verify that an access token is still valid before processing a request
+  </Accordion>
+
+  <Accordion title="Debugging">
+    Inspect token metadata to debug authorization issues
+  </Accordion>
+
+  <Accordion title="Audit Logging">
+    Log token usage with agent and client information
+  </Accordion>
+
+  <Accordion title="Rate Limiting">
+    Implement rate limiting based on agent ID or client ID
+  </Accordion>
+</AccordionGroup>
+
+## Introspection vs JWT Verification
+
+You can verify tokens locally by validating the JWT signature, or use introspection:
+
+| Method | Pros | Cons |
+|--------|------|------|
+| **Local JWT Verification** | Faster, no network call | Cannot detect revoked tokens |
+| **Token Introspection** | Checks revocation status | Requires API call |
+
+<Note>
+  For most use cases, local JWT verification is sufficient. Use introspection if you need to check revocation status or don't want to implement JWT validation.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Revoke Tokens" icon="ban" href="/api-reference/oauth/revoke">
+    POST /revoke - Revoke access or refresh tokens
+  </Card>
+  <Card title="Token Management" icon="key" href="/guides/tokens">
+    Learn about token lifecycle and best practices
+  </Card>
+</CardGroup>

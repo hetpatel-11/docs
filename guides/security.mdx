@@ -1,0 +1,612 @@
+---
+title: 'Security Best Practices'
+description: 'Security guidelines for Auth Agent deployment and integration'
+---
+
+## Overview
+
+Auth Agent implements OAuth 2.1 with multiple security layers to protect against common attacks and ensure data privacy. This guide covers security best practices for both deploying Auth Agent and integrating it into your applications.
+
+## Core Security Features
+
+### PKCE (Proof Key for Code Exchange)
+
+**Status:** ✅ Required for all authorization flows
+
+PKCE prevents authorization code interception attacks by requiring the client to prove they initiated the authorization request.
+
+**How it works:**
+1. Client generates random `code_verifier` (128 bytes)
+2. Client computes `code_challenge = SHA256(code_verifier)`
+3. Client sends `code_challenge` in `/authorize` request
+4. Server stores `code_challenge` with authorization code
+5. Client sends `code_verifier` in `/token` request
+6. Server verifies `SHA256(code_verifier) === stored code_challenge`
+
+**Implementation:**
+```typescript
+// 1. Generate code verifier
+const codeVerifier = generateCodeVerifier(); // 128 random bytes
+
+// 2. Compute code challenge
+const codeChallenge = await sha256(codeVerifier);
+
+// 3. Store for later
+sessionStorage.setItem('code_verifier', codeVerifier);
+
+// 4. Send challenge in authorize request
+const params = new URLSearchParams({
+  code_challenge: codeChallenge,
+  code_challenge_method: 'S256',
+  // ... other params
+});
+```
+
+<Warning>
+Auth Agent **requires** PKCE. Requests without `code_challenge` are rejected. Only S256 (SHA-256) is supported - plain text challenges are not allowed.
+</Warning>
+
+### PBKDF2 Password Hashing
+
+**Status:** ✅ All secrets hashed with PBKDF2
+
+Agent secrets and client secrets are hashed using PBKDF2 with 100,000 iterations before storage.
+
+**Configuration:**
+```typescript
+const hash = await crypto.subtle.deriveBits(
+  {
+    name: 'PBKDF2',
+    salt: new Uint8Array(16), // Random salt
+    iterations: 100000,
+    hash: 'SHA-256'
+  },
+  key,
+  256
+);
+```
+
+**Why PBKDF2:**
+- Resistant to brute-force attacks
+- Configurable iteration count (currently 100,000)
+- Native Web Crypto API support (no dependencies)
+- FIPS 140-2 compliant
+
+<Note>
+Secrets are **never stored in plaintext**. They're only shown once at creation time.
+</Note>
+
+### JWT Access Tokens
+
+**Status:** ✅ Signed with HS256
+
+Access tokens are JWTs signed with HMAC-SHA256 to prevent tampering.
+
+**Token Structure:**
+```json
+{
+  "header": {
+    "alg": "HS256",
+    "typ": "JWT"
+  },
+  "payload": {
+    "sub": "agent_abc123",
+    "iss": "https://api.auth-agent.com",
+    "aud": "client_xyz789",
+    "exp": 1735689600,
+    "iat": 1735686000,
+    "scope": "openid profile email",
+    "model": "gpt-4"
+  }
+}
+```
+
+**Validation:**
+```typescript
+import { jwtVerify } from 'jose';
+
+const { payload } = await jwtVerify(
+  accessToken,
+  new TextEncoder().encode(JWT_SECRET),
+  {
+    issuer: 'https://api.auth-agent.com',
+    audience: clientId
+  }
+);
+```
+
+<Warning>
+**Never expose `JWT_SECRET`!** It must remain server-side only. Compromised secrets allow attackers to forge access tokens.
+</Warning>
+
+### Row Level Security (RLS)
+
+**Status:** ✅ Enforced on all user-owned tables
+
+RLS policies ensure users can only access their own agents and clients.
+
+**How it works:**
+```sql
+-- Users can only see their own agents
+CREATE POLICY "Users can view own agents"
+ON agents FOR SELECT
+USING (auth.uid() = user_id);
+
+-- Admins can see all agents
+CREATE POLICY "Admins can view all agents"
+ON agents FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM user_profiles
+        WHERE user_profiles.id = auth.uid()
+        AND user_profiles.role = 'admin'
+    )
+);
+```
+
+**Benefits:**
+- Database-level enforcement (not just application layer)
+- Automatic filtering of queries
+- Protection against SQL injection attacks
+- Admin override for management
+
+<Note>
+RLS is enforced at the database level. Even if application code has bugs, users cannot access others' data.
+</Note>
+
+## Threat Model & Mitigations
+
+### Authorization Code Interception
+
+**Attack:** Attacker intercepts authorization code from redirect URI
+**Mitigation:** PKCE required - attacker cannot exchange code without `code_verifier`
+**Status:** ✅ Protected
+
+### Replay Attacks
+
+**Attack:** Attacker reuses stolen authorization code
+**Mitigation:** Authorization codes are single-use (marked as `used` after exchange)
+**Status:** ✅ Protected
+
+```sql
+-- Codes can only be used once
+UPDATE auth_codes SET used = TRUE WHERE code = ?;
+-- Second attempt will fail: WHERE used = FALSE
+```
+
+### Token Theft
+
+**Attack:** Attacker steals access or refresh token
+**Mitigation:**
+- Short access token lifetime (1 hour)
+- Refresh token rotation on use
+- Token revocation endpoint
+**Status:** ✅ Protected
+
+### Cross-Site Request Forgery (CSRF)
+
+**Attack:** Attacker tricks user's browser into making unauthorized requests
+**Mitigation:** `state` parameter required in authorization request
+**Status:** ✅ Protected
+
+```typescript
+// Generate random state
+const state = crypto.randomUUID();
+sessionStorage.setItem('oauth_state', state);
+
+// Include in authorization URL
+const params = new URLSearchParams({
+  state,
+  // ... other params
+});
+
+// Verify on callback
+const returnedState = searchParams.get('state');
+if (returnedState !== sessionStorage.getItem('oauth_state')) {
+  throw new Error('CSRF attack detected');
+}
+```
+
+### SQL Injection
+
+**Attack:** Attacker injects malicious SQL via user input
+**Mitigation:**
+- Parameterized queries (no string concatenation)
+- RLS policies
+- Input validation
+**Status:** ✅ Protected
+
+```typescript
+// ✅ Good - Parameterized query
+const { data } = await supabase
+  .from('agents')
+  .select('*')
+  .eq('agent_id', agentId);
+
+// ❌ Bad - String concatenation (never do this)
+const query = `SELECT * FROM agents WHERE agent_id = '${agentId}'`;
+```
+
+### Session Hijacking
+
+**Attack:** Attacker steals user's session cookie
+**Mitigation:**
+- HTTPOnly cookies (not accessible via JavaScript)
+- Secure flag (HTTPS only)
+- SameSite=Lax (CSRF protection)
+- Session expiration
+**Status:** ✅ Protected
+
+### Brute Force Attacks
+
+**Attack:** Attacker tries many passwords/secrets to guess correct one
+**Mitigation:**
+- PBKDF2 with 100,000 iterations (slow to compute)
+- Rate limiting (recommended at edge/firewall level)
+- Account lockout after failed attempts (TODO)
+**Status:** ⚠️ Partially protected (add rate limiting)
+
+<Warning>
+**TODO:** Implement rate limiting on authentication endpoints to prevent brute force attacks.
+</Warning>
+
+## Deployment Security
+
+### Environment Variables
+
+**Never commit secrets to version control:**
+
+```bash
+# ❌ Bad
+JWT_SECRET=my-secret-key-123
+
+# ✅ Good
+JWT_SECRET=${JWT_SECRET}
+```
+
+**Use .env files (gitignored):**
+```bash
+# .env
+JWT_SECRET=your-secret-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+**Secrets management:**
+- Use Cloudflare Workers Secrets for production
+- Use environment variables for local development
+- Rotate secrets regularly
+- Never log secrets
+- Never send secrets to client-side code
+
+### HTTPS Enforcement
+
+**Required in production:**
+
+```typescript
+// Reject HTTP requests in production
+if (request.url.startsWith('http://') && !request.url.includes('localhost')) {
+  return new Response('HTTPS required', { status: 403 });
+}
+```
+
+**Redirect URI validation:**
+```typescript
+// Only allow HTTPS redirect URIs (except localhost)
+const isValid = redirectUri.startsWith('https://') ||
+                redirectUri.startsWith('http://localhost');
+```
+
+<Warning>
+All production redirect URIs **must use HTTPS**. HTTP is only allowed for `localhost` during development.
+</Warning>
+
+### CORS Configuration
+
+**Restrict origins in production:**
+
+```typescript
+// Allow specific origins only
+const allowedOrigins = [
+  'https://console.auth-agent.com',
+  'https://api.auth-agent.com',
+  'http://localhost:3001', // Dev only
+];
+
+app.use('*', cors({
+  origin: (origin) => allowedOrigins.includes(origin),
+  credentials: true,
+}));
+```
+
+<Warning>
+Never use `Access-Control-Allow-Origin: *` in production. Always specify exact origins.
+</Warning>
+
+### Database Security
+
+**Supabase best practices:**
+
+1. **Never expose service role key client-side**
+   - Use anon key for client-side code
+   - Use service role key only in server-side code
+
+2. **Enable RLS on all tables**
+   ```sql
+   ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+   ```
+
+3. **Review RLS policies regularly**
+   - Ensure policies match intended access patterns
+   - Test with non-admin users
+
+4. **Monitor authentication logs**
+   - Check for suspicious login attempts
+   - Alert on failed authentication spikes
+
+5. **Enable database connection pooling**
+   - Use Supabase connection pooler for Workers
+   - Set reasonable pool limits
+
+## Client-Side Security
+
+### Token Storage
+
+**DO NOT store tokens in localStorage:**
+
+```typescript
+// ❌ Bad - Accessible to XSS attacks
+localStorage.setItem('access_token', token);
+
+// ✅ Good - HTTPOnly cookie (server-side only)
+// Set via Set-Cookie header from server
+
+// ✅ Acceptable - sessionStorage (cleared on tab close)
+sessionStorage.setItem('access_token', token);
+
+// ✅ Best - Memory only (lost on page refresh)
+let accessToken: string | null = null;
+```
+
+**Secure cookie attributes:**
+```http
+Set-Cookie: access_token=...;
+  HttpOnly;
+  Secure;
+  SameSite=Lax;
+  Max-Age=3600;
+```
+
+### XSS Prevention
+
+**Sanitize user input:**
+```typescript
+// Use a library like DOMPurify
+import DOMPurify from 'dompurify';
+
+const clean = DOMPurify.sanitize(userInput);
+```
+
+**Content Security Policy:**
+```http
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+```
+
+### Redirect URI Validation
+
+**Validate redirect URIs on client-side:**
+```typescript
+const allowedRedirects = [
+  'https://yoursite.com/callback',
+  'http://localhost:3000/callback'
+];
+
+if (!allowedRedirects.includes(redirectUri)) {
+  throw new Error('Invalid redirect URI');
+}
+```
+
+## Agent Security
+
+### Credential Management
+
+**Secure storage:**
+```python
+# ✅ Good - Environment variables
+import os
+agent_secret = os.getenv('AGENT_SECRET')
+
+# ❌ Bad - Hardcoded
+agent_secret = 'ags_abc123...'
+```
+
+**Never log credentials:**
+```python
+# ❌ Bad
+print(f"Agent secret: {agent_secret}")
+
+# ✅ Good
+print("Agent authenticated successfully")
+```
+
+### Network Security
+
+**Use HTTPS for all API calls:**
+```python
+# ✅ Good
+response = await client.post(
+    'https://api.auth-agent.com/api/agent/authenticate',
+    json={'agent_id': agent_id, 'agent_secret': agent_secret}
+)
+```
+
+**Verify SSL certificates:**
+```python
+# Default behavior - verify SSL
+response = await client.post(url, verify=True)
+
+# ❌ Never do this in production
+response = await client.post(url, verify=False)
+```
+
+## Monitoring & Alerts
+
+### Key Metrics
+
+Monitor these security metrics:
+
+1. **Failed authentication attempts**
+   - Sudden spike may indicate brute force attack
+   - Alert threshold: >100/minute
+
+2. **Invalid redirect URI attempts**
+   - Indicates potential authorization code theft attempt
+   - Alert on any occurrence
+
+3. **Expired token usage**
+   - Clients trying to use expired tokens
+   - May indicate stolen tokens or client bugs
+
+4. **RLS policy violations**
+   - Users attempting to access others' data
+   - Immediate investigation required
+
+5. **Admin actions**
+   - Log all admin operations
+   - Alert on unusual patterns
+
+### Logging Best Practices
+
+**What to log:**
+- Authentication attempts (success/failure)
+- Authorization code generation
+- Token exchanges
+- Token revocations
+- Admin actions
+- RLS policy violations
+
+**What NOT to log:**
+- Secrets (agent_secret, client_secret)
+- Access tokens (full token)
+- Refresh tokens
+- Code verifiers
+- User passwords
+
+```typescript
+// ✅ Good
+console.log(`Agent ${agentId} authenticated successfully`);
+
+// ❌ Bad
+console.log(`Agent ${agentId} secret: ${agentSecret}`);
+```
+
+## Incident Response
+
+### If Secrets Are Compromised
+
+**Immediate actions:**
+
+1. **Rotate JWT_SECRET**
+   ```bash
+   # Generate new secret
+   openssl rand -base64 32
+   # Update Cloudflare Workers secret
+   wrangler secret put JWT_SECRET
+   ```
+
+2. **Revoke all tokens**
+   ```sql
+   UPDATE tokens SET revoked = TRUE;
+   ```
+
+3. **Force re-authentication**
+   - All clients must obtain new tokens
+
+4. **Investigate breach**
+   - Check logs for unauthorized access
+   - Identify compromised systems
+
+### If Database Is Compromised
+
+**Immediate actions:**
+
+1. **Rotate database credentials**
+2. **Review access logs**
+3. **Check for data exfiltration**
+4. **Notify affected users**
+5. **Review RLS policies**
+
+## Security Checklist
+
+### Deployment Checklist
+
+- [ ] HTTPS enforced for all endpoints
+- [ ] JWT_SECRET is strong random value (32+ bytes)
+- [ ] Supabase service role key secured
+- [ ] CORS origins restricted
+- [ ] RLS enabled on all user tables
+- [ ] Database backups configured
+- [ ] Monitoring and alerting configured
+- [ ] Rate limiting implemented
+- [ ] Security headers configured
+- [ ] Secrets stored in environment variables
+
+### Integration Checklist
+
+- [ ] PKCE implemented correctly
+- [ ] state parameter validated
+- [ ] Redirect URIs validated
+- [ ] Tokens stored securely (not localStorage)
+- [ ] User input sanitized
+- [ ] HTTPS used for all API calls
+- [ ] Secrets not logged
+- [ ] Error messages don't leak sensitive info
+- [ ] Token expiration handled gracefully
+- [ ] Refresh token rotation implemented
+
+## Security Updates
+
+Auth Agent follows security best practices and monitors for vulnerabilities:
+
+- Regular dependency updates
+- Security patch releases
+- CVE monitoring
+- Security audit recommendations
+
+**Stay updated:**
+- Watch the [GitHub repository](https://github.com/auth-agent/auth-agent)
+- Subscribe to security advisories
+- Join the Discord community
+
+## Reporting Security Issues
+
+If you discover a security vulnerability:
+
+1. **DO NOT open a public issue**
+2. Email: security@auth-agent.com
+3. Include:
+   - Description of vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Suggested fix (if any)
+
+We'll respond within 48 hours and work with you to address the issue.
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/guides/database-schema">
+    Learn about RLS policies and data security
+  </Card>
+  <Card title="Console Authentication" icon="lock" href="/guides/console-authentication">
+    Set up secure OAuth for the console
+  </Card>
+  <Card title="Deployment Guide" icon="rocket" href="/guides/deployment">
+    Deploy securely to production
+  </Card>
+  <Card title="OAuth 2.1 Spec" icon="book" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-10">
+    Official OAuth 2.1 specification
+  </Card>
+</CardGroup>

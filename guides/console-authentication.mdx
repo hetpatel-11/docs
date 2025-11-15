@@ -1,0 +1,348 @@
+---
+title: 'Console Authentication Setup'
+description: 'Set up Google and GitHub OAuth for the Auth Agent console'
+---
+
+## Overview
+
+The Auth Agent console uses **Supabase Auth** to authenticate users who want to manage their agents and OAuth clients. This guide walks you through setting up Google and GitHub OAuth providers.
+
+<Warning>
+The console website is currently under development at `console.auth-agent.com`. Until it's ready, please contact us to get agent and client credentials.
+</Warning>
+
+## Architecture
+
+The console authentication system consists of:
+
+- **Supabase Auth** - Handles OAuth flows and session management
+- **Google OAuth** - Allows sign-in with Google accounts
+- **GitHub OAuth** - Allows sign-in with GitHub accounts
+- **Email/Password** - Traditional authentication (optional)
+- **User Profiles** - Stores user info and roles (admin, agent_owner, website_developer)
+- **RLS Policies** - Enforces data isolation between users
+
+## Prerequisites
+
+1. Supabase project (already set up at `fddcizbzsfgzhcygddsw.supabase.co`)
+2. Google Cloud Console account
+3. GitHub account
+4. Access to Supabase dashboard
+
+## Step 1: Apply Database Schema
+
+First, apply the authentication schema extension to your Supabase database:
+
+### Using SQL Editor
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project: `fddcizbzsfgzhcygddsw`
+3. Navigate to **SQL Editor**
+4. Run the schema from `/Auth_Agent/supabase/schema-auth.sql`
+
+<CodeGroup>
+```sql schema-auth.sql
+-- Auth Agent - User Authentication Schema Extension
+
+-- Add user_id column to agents table
+ALTER TABLE agents
+ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Add user_id column to clients table
+ALTER TABLE clients
+ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Create user role enum
+CREATE TYPE user_role AS ENUM ('admin', 'agent_owner', 'website_developer');
+
+-- User profiles table
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    full_name TEXT,
+    role user_role NOT NULL DEFAULT 'agent_owner',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable RLS on user_profiles
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies (see Database Schema docs for full policies)
+...
+```
+</CodeGroup>
+
+<Note>
+The full schema is available in `/Auth_Agent/supabase/schema-auth.sql`. It includes RLS policies for secure data isolation.
+</Note>
+
+## Step 2: Configure Google OAuth
+
+### 2.1 Create Google OAuth Client
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Navigate to **APIs & Services** > **Credentials**
+4. Click **Create Credentials** > **OAuth client ID**
+
+### 2.2 Configure OAuth Consent Screen
+
+If prompted to configure the consent screen:
+
+- **User Type:** External
+- **App name:** Auth Agent Console
+- **User support email:** Your email
+- **Developer contact:** Your email
+- **Scopes:** Default (email, profile, openid)
+
+### 2.3 Create OAuth Client ID
+
+- **Application type:** Web application
+- **Name:** Auth Agent Console
+- **Authorized JavaScript origins:**
+  - `http://localhost:3001` (development)
+  - `https://console.auth-agent.com` (production)
+- **Authorized redirect URIs:**
+  - `https://fddcizbzsfgzhcygddsw.supabase.co/auth/v1/callback`
+
+<Warning>
+The redirect URI **must** match your Supabase project's auth callback URL exactly. Use the format:
+`https://[PROJECT_REF].supabase.co/auth/v1/callback`
+</Warning>
+
+### 2.4 Save Credentials
+
+After creating, you'll receive:
+- **Client ID** (looks like: `123456789-abc.apps.googleusercontent.com`)
+- **Client Secret** (looks like: `GOCSPX-abc123...`)
+
+**Keep these secure!** You'll need them in the next step.
+
+### 2.5 Configure in Supabase
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Navigate to **Authentication** > **Providers**
+4. Find **Google** and click to configure
+5. Toggle **Enable Google provider** ON
+6. Paste your **Client ID**
+7. Paste your **Client Secret**
+8. Click **Save**
+
+## Step 3: Configure GitHub OAuth
+
+### 3.1 Create GitHub OAuth App
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **OAuth Apps** > **New OAuth App**
+3. Fill in the details:
+   - **Application name:** Auth Agent Console
+   - **Homepage URL:** `https://console.auth-agent.com` (or `http://localhost:3001` for dev)
+   - **Authorization callback URL:** `https://fddcizbzsfgzhcygddsw.supabase.co/auth/v1/callback`
+
+<Warning>
+The callback URL **must** match your Supabase project's auth callback URL exactly.
+</Warning>
+
+4. Click **Register application**
+5. Click **Generate a new client secret**
+
+### 3.2 Save Credentials
+
+You'll receive:
+- **Client ID** (looks like: `Iv1.a1b2c3d4e5f6g7h8`)
+- **Client Secret** (looks like: `abc123def456...`)
+
+**Keep these secure!** You'll need them in the next step.
+
+### 3.3 Configure in Supabase
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Navigate to **Authentication** > **Providers**
+4. Find **GitHub** and click to configure
+5. Toggle **Enable GitHub provider** ON
+6. Paste your **Client ID**
+7. Paste your **Client Secret**
+8. Click **Save**
+
+## Step 4: Configure Email Authentication (Optional)
+
+If you want to allow email/password sign up:
+
+1. Go to **Authentication** > **Providers** in Supabase
+2. Find **Email** and ensure it's enabled
+3. Configure email templates (optional):
+   - Navigate to **Authentication** > **Email Templates**
+   - Customize the confirmation email
+   - Customize the password reset email
+
+<Note>
+Email confirmation can be disabled for development. Go to **Authentication** > **Settings** and uncheck "Enable email confirmations".
+</Note>
+
+## Step 5: Update Site URL
+
+1. Go to **Authentication** > **URL Configuration**
+2. Set **Site URL** to:
+   - Development: `http://localhost:3001`
+   - Production: `https://console.auth-agent.com`
+3. Add **Redirect URLs**:
+   - `http://localhost:3001/auth/callback`
+   - `https://console.auth-agent.com/auth/callback`
+
+## Step 6: Create Your Admin User
+
+After setting up authentication, sign up for an account through the console website. Then, manually set your account as admin:
+
+<CodeGroup>
+```sql Set Admin Role
+-- In Supabase SQL Editor
+UPDATE user_profiles
+SET role = 'admin'
+WHERE email = 'your-email@example.com';
+```
+</CodeGroup>
+
+<Warning>
+Only do this for trusted users! Admins can view and manage all agents and clients across all users.
+</Warning>
+
+## Environment Variables
+
+Ensure your console website has these environment variables:
+
+<CodeGroup>
+```bash .env
+NEXT_PUBLIC_SUPABASE_URL=https://fddcizbzsfgzhcygddsw.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_SERVER_URL=https://auth-agent-workers.hetkp8044.workers.dev
+```
+</CodeGroup>
+
+## Testing
+
+### Test Google Login
+
+1. Navigate to `http://localhost:3001/login`
+2. Click "Continue with Google"
+3. Complete Google OAuth flow
+4. Verify you're redirected to `/dashboard`
+5. Check Supabase Authentication > Users to see your account
+
+### Test GitHub Login
+
+1. Navigate to `http://localhost:3001/login`
+2. Click "Continue with GitHub"
+3. Complete GitHub OAuth flow
+4. Verify you're redirected to `/dashboard`
+5. Check Supabase Authentication > Users to see your account
+
+### Test Email Signup
+
+1. Navigate to `http://localhost:3001/signup`
+2. Fill in name, email, and password
+3. Submit the form
+4. Check your email for confirmation (if enabled)
+5. Click the confirmation link
+6. Login and verify you're redirected to `/dashboard`
+
+## Troubleshooting
+
+### "Invalid login credentials" error
+
+- Check that email confirmation is not required, or user has confirmed email
+- Verify password meets minimum requirements (6 characters)
+- Try with a different browser or incognito window
+
+### "Unable to validate email address: invalid format"
+
+- Ensure email is in valid format
+- Check for typos in email field
+- Try a different email provider
+
+### OAuth redirect not working
+
+- Verify redirect URLs in Google/GitHub OAuth settings match Supabase callback URL **exactly**
+- Check Site URL and Redirect URLs in Supabase settings
+- Ensure no trailing slashes in URLs
+- Check browser console for errors
+
+### User not redirected after login
+
+- Check middleware is properly configured in `/src/middleware.ts`
+- Verify auth callback route exists at `/src/app/auth/callback/route.ts`
+- Check browser console for errors
+- Try clearing cookies and localStorage
+
+### RLS policies blocking access
+
+- Verify user_profiles table has entry for the user
+- Check that user_id is properly set on agents/clients
+- Ensure policies match your use case
+- Check Supabase logs for RLS policy violations
+
+## User Roles
+
+The system supports three user roles:
+
+### agent_owner (Default)
+
+- Can create and manage their own AI agents
+- Can view their own agent credentials
+- Cannot see other users' agents
+- Cannot access admin features
+
+### website_developer
+
+- Can create and manage their own OAuth clients
+- Can view their own client credentials
+- Can configure redirect URIs
+- Cannot see other users' clients
+
+### admin
+
+- Can view all agents across all users
+- Can view all clients across all users
+- Can manage system-wide settings
+- Full access to admin panel
+
+<Warning>
+User roles must be set manually in the database. There is no self-service role elevation.
+</Warning>
+
+## Security Notes
+
+- Never commit `.env` files with real credentials
+- Always use environment variables for secrets
+- Keep Supabase service role key secure (only use server-side)
+- Regularly rotate OAuth client secrets
+- Monitor authentication logs in Supabase dashboard
+- Enable multi-factor authentication for admin accounts
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" icon="database" href="/guides/database-schema">
+    Learn about the database structure and RLS policies
+  </Card>
+  <Card title="Security Guide" icon="shield" href="/guides/security">
+    Best practices for securing your Auth Agent deployment
+  </Card>
+  <Card title="Console Usage" icon="browser" href="/guides/console">
+    How to use the console to manage agents and clients
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Deploy the console to production
+  </Card>
+</CardGroup>
+
+## Support
+
+If you encounter issues:
+1. Check Supabase logs: **Authentication** > **Logs**
+2. Check browser console for errors
+3. Verify all environment variables are set correctly
+4. Test with a fresh browser/incognito window
+5. Report issues at [GitHub](https://github.com/auth-agent/auth-agent/issues)

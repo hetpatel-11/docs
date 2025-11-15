@@ -1,0 +1,331 @@
+---
+title: "Agent Quickstart"
+description: "Get your AI agent authenticated with Auth Agent using browser-use"
+---
+
+## For AI Agent Users
+
+This guide shows you how to authenticate your AI agents with websites that use Auth Agent. We'll use the **browser-use** library as an example, which is the recommended way to integrate Auth Agent with your agents.
+
+## Overview
+
+When your agent encounters a website that requires Auth Agent authentication:
+
+1. The agent navigates to the sign-in page
+2. Clicks the "Sign in with Auth Agent" button
+3. A spinning authentication page appears
+4. Your agent automatically authenticates using Auth Agent tools
+5. The website grants access and redirects to the dashboard
+
+## Step 1: Create Agent Credentials
+
+<Steps>
+  <Step title="Navigate to Agent Console">
+    Go to [https://auth-agent.com/console/agent](https://auth-agent.com/console/agent)
+  </Step>
+  <Step title="Create New Agent">
+    Click "Create New Agent" and enter:
+    - Your email address
+    - Agent name (e.g., "My Shopping Assistant")
+  </Step>
+  <Step title="Copy Credentials">
+    Save your `agent_id` and `agent_secret` securely. You'll need these to authenticate.
+  </Step>
+</Steps>
+
+<Note>
+  Keep your `agent_secret` secure! Never commit it to version control. Use environment variables.
+</Note>
+
+## Step 2: Install Dependencies
+
+```bash
+# Install Auth Agent SDK
+pip install auth-agent-sdk
+
+# Install browser-use (if not already installed)
+pip install browser-use
+```
+
+## Step 3: Set Up Environment Variables
+
+Create a `.env` file in your project:
+
+```bash
+AGENT_ID=your_agent_id_here
+AGENT_SECRET=your_agent_secret_here
+AGENT_MODEL=gpt-4  # or your model identifier
+```
+
+## Step 4: Create Auth Agent Tools
+
+Create a file `auth_agent_authenticate.py`:
+
+```python
+"""
+Auth Agent authentication tool for browser-use.
+
+This tool enables AI agents to authenticate with Auth Agent OAuth 2.1 server
+when they encounter the authorization spinning page.
+"""
+
+import os
+from auth_agent_sdk.agent import AuthAgentAgentSDK
+from browser_use.tools.service import Tools
+from browser_use.agent.views import ActionResult
+from browser_use.browser import BrowserSession
+
+class AuthAgentTools(Tools):
+    """Tools for authenticating with Auth Agent OAuth 2.1 server."""
+
+    def __init__(
+        self,
+        agent_id: str = None,
+        agent_secret: str = None,
+        model: str = None,
+    ):
+        """
+        Initialize Auth Agent Tools.
+
+        Args:
+            agent_id: Agent ID (defaults to AGENT_ID env var)
+            agent_secret: Agent secret (defaults to AGENT_SECRET env var)
+            model: Model identifier (defaults to AGENT_MODEL env var or 'browser-use')
+        """
+        super().__init__()
+        
+        self.agent_id = agent_id or os.getenv('AGENT_ID')
+        self.agent_secret = agent_secret or os.getenv('AGENT_SECRET')
+        self.model = model or os.getenv('AGENT_MODEL', 'browser-use')
+        
+        if not self.agent_id or not self.agent_secret:
+            raise ValueError(
+                'Agent ID and secret must be provided either as arguments or via '
+                'AGENT_ID and AGENT_SECRET environment variables'
+            )
+        
+        # Initialize SDK
+        self.sdk = AuthAgentAgentSDK(
+            agent_id=self.agent_id,
+            agent_secret=self.agent_secret,
+            model=self.model,
+        )
+        
+        self.register_auth_agent_tools()
+
+    def register_auth_agent_tools(self):
+        """Register all Auth Agent authentication tools."""
+
+        @self.action(
+            'Authenticate with Auth Agent when you see the spinning authentication page. '
+            'Extract the request_id from the current page and authenticate. '
+            'Use this after clicking "Sign in with Auth Agent" button and the spinning page appears.'
+        )
+        async def authenticate_with_auth_agent(browser_session: BrowserSession) -> ActionResult:
+            """
+            Authenticate with Auth Agent OAuth server.
+            
+            This tool:
+            1. Gets the current page URL
+            2. Extracts request_id from the authorization page
+            3. Authenticates using the agent credentials
+            4. Returns the authentication result
+            """
+            try:
+                # Get current page URL
+                current_url = await browser_session.get_current_page_url()
+                
+                # Extract request_id from window.authRequest on the page
+                js_code = """
+                (function() {
+                    if (window.authRequest && window.authRequest.request_id) {
+                        return window.authRequest.request_id;
+                    }
+                    return null;
+                })()
+                """
+                
+                # Get CDP session and evaluate JavaScript
+                cdp_session = await browser_session.get_or_create_cdp_session()
+                result = await cdp_session.cdp_client.send.Runtime.evaluate(
+                    params={'expression': js_code, 'returnByValue': True, 'awaitPromise': True},
+                    session_id=cdp_session.session_id,
+                )
+                
+                request_id = result.get('result', {}).get('value')
+                
+                if not request_id:
+                    return ActionResult(
+                        extracted_content='window.authRequest.request_id not found on page',
+                        error='Request ID not found',
+                        success=False
+                    )
+                
+                # Authenticate
+                auth_result = await self.sdk.authenticate_async(request_id, current_url)
+                
+                if not auth_result.get('success'):
+                    error_msg = auth_result.get('error_description') or 'Authentication failed'
+                    return ActionResult(
+                        extracted_content=f'Authentication failed: {error_msg}',
+                        error=error_msg,
+                        success=False
+                    )
+                
+                # Wait for authentication to complete
+                final_status = await self.sdk.wait_for_authentication_async(
+                    request_id,
+                    current_url,
+                    poll_interval=0.5,
+                    timeout=30.0,
+                )
+                
+                auth_code = final_status.get('code', '')
+                
+                return ActionResult(
+                    extracted_content=(
+                        f'✅ Successfully authenticated with Auth Agent!\n'
+                        f'Authorization code: {auth_code[:30]}...\n'
+                        f'The page will redirect automatically to complete the OAuth flow.'
+                    ),
+                    long_term_memory=f'Authenticated with Auth Agent using request_id {request_id}'
+                )
+                    
+            except Exception as e:
+                return ActionResult(
+                    extracted_content=f'Error during authentication: {str(e)}',
+                    error=str(e),
+                    success=False
+                )
+```
+
+## Step 5: Use in Your Agent
+
+Create your agent script:
+
+```python
+import os
+import asyncio
+from dotenv import load_dotenv
+from browser_use import Agent, ChatBrowserUse
+from auth_agent_authenticate import AuthAgentTools
+
+# Load environment variables
+load_dotenv()
+
+async def main():
+    """Run the Auth Agent authentication example."""
+    
+    # Initialize LLM
+    llm = ChatBrowserUse()
+    
+    # Initialize Auth Agent tools with credentials from environment
+    tools = AuthAgentTools(
+        agent_id=os.getenv('AGENT_ID'),
+        agent_secret=os.getenv('AGENT_SECRET'),
+        model=os.getenv('AGENT_MODEL', 'browser-use'),
+    )
+    
+    # Create the task
+    task = (
+        "Go to https://example.com/ai-auth/login "
+        "and click on the 'Sign in with Auth Agent' button. "
+        "When the spinning authentication page appears (shows 'Authenticating AI Agent' with a spinner), "
+        "use the authenticate_with_auth_agent tool to complete the authentication. "
+        "Wait for the page to redirect after authentication succeeds. "
+        "Keep waiting until you reach the dashboard page - do not stop until you see the dashboard. "
+        "Only use the 'done' tool when you have successfully reached and verified you are on the dashboard page."
+    )
+    
+    # Create and run the agent
+    agent = Agent(
+        task=task,
+        llm=llm,
+        tools=tools,  # Pass the Tools instance directly
+    )
+    
+    # Run the agent
+    history = await agent.run()
+    
+    print("\n" + "="*60)
+    print("Authentication Complete!")
+    print("="*60)
+    print("\nFinal result:")
+    print(history.final_result() if hasattr(history, 'final_result') else history)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## How It Works
+
+<Steps>
+  <Step title="Agent Navigates to Sign-In">
+    Your agent goes to the website's sign-in page
+  </Step>
+  <Step title="Clicks Auth Agent Button">
+    The agent clicks "Sign in with Auth Agent"
+  </Step>
+  <Step title="Spinning Page Appears">
+    The website shows a spinning authentication page with `window.authRequest.request_id`
+  </Step>
+  <Step title="Agent Authenticates">
+    Your `authenticate_with_auth_agent` tool:
+    - Extracts the `request_id` from the page
+    - Calls Auth Agent API to authenticate
+    - Waits for authentication to complete
+  </Step>
+  <Step title="Website Grants Access">
+    The website receives the authorization code and creates a session
+  </Step>
+  <Step title="Redirect to Dashboard">
+    The agent is redirected to the dashboard and can proceed with its task
+  </Step>
+</Steps>
+
+## What Happens Behind the Scenes
+
+1. **Request ID Extraction**: The tool reads `window.authRequest.request_id` from the page using JavaScript
+2. **Authentication Request**: The SDK sends a POST request to Auth Agent with your agent credentials
+3. **Status Polling**: The SDK polls the status endpoint until authentication completes
+4. **Authorization Code**: Once complete, the website receives an authorization code
+5. **Token Exchange**: The website exchanges the code for access tokens (happens server-side)
+6. **Session Creation**: The website creates a session based on the chosen integration scenario
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Agent can't find request_id">
+    Make sure the agent is on the spinning authentication page. The page should show "Authenticating AI Agent" with a spinner. The `window.authRequest.request_id` is only available on this specific page.
+  </Accordion>
+  
+  <Accordion title="Authentication fails">
+    - Verify your `agent_id` and `agent_secret` are correct
+    - Check that your agent credentials are active in the console
+    - Ensure the website is using Auth Agent (check the URL contains auth-agent.com)
+  </Accordion>
+  
+  <Accordion title="Timeout waiting for authentication">
+    The default timeout is 30 seconds. If authentication takes longer, the website may be slow. The page should still redirect automatically even if the tool times out.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Console Setup" icon="terminal" href="/guides/console">
+    Learn how to manage your agent credentials
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/agent/authenticate">
+    Complete API documentation for agent authentication
+  </Card>
+  <Card title="Examples" icon="book-code" href="https://github.com/auth-agent/auth-agent/tree/main/Auth_Agent/examples/browser-use-integration">
+    View more examples on GitHub
+  </Card>
+  <Card title="Support" icon="question-circle" href="https://github.com/auth-agent/auth-agent/issues">
+    Get help on GitHub
+  </Card>
+</CardGroup>
+
+
+

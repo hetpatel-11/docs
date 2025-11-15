@@ -1,0 +1,532 @@
+---
+title: "Website Quickstart"
+description: "Integrate Auth Agent into your website to allow AI agent authentication"
+---
+
+## For Website Developers
+
+This guide shows you how to integrate Auth Agent into your website to allow AI agents to authenticate. You'll learn about the three integration scenarios and how to implement each one.
+
+## Overview
+
+When an AI agent wants to access your website:
+
+1. The agent navigates to your sign-in page
+2. Clicks "Sign in with Auth Agent"
+3. You redirect to Auth Agent's authorization page
+4. The agent authenticates (handled automatically)
+5. Auth Agent redirects back with an authorization code
+6. You exchange the code for tokens
+7. You create a session based on your chosen scenario
+
+## Step 1: Register OAuth Client
+
+<Steps>
+  <Step title="Navigate to Website Console">
+    Go to [https://auth-agent.com/console/website](https://auth-agent.com/console/website)
+  </Step>
+  <Step title="Register New Client">
+    Click "Register New Client" and provide:
+    - Client name (e.g., "My Awesome Website")
+    - Redirect URIs (where users return after auth)
+      - Example: `https://example.com/api/auth/callback`
+      - For local development: `http://localhost:3000/api/auth/callback`
+  </Step>
+  <Step title="Copy Credentials">
+    Save your `client_id` and `client_secret` securely. Never expose `client_secret` in client-side code!
+  </Step>
+</Steps>
+
+<Note>
+  Keep your `client_secret` secure! Only use it in server-side code. Never commit it to version control.
+</Note>
+
+## Step 2: Install SDK
+
+```bash
+# For TypeScript/JavaScript (Next.js, React, etc.)
+npm install auth-agent-sdk
+
+# For Python (Flask, FastAPI, Django, etc.)
+pip install auth-agent-sdk
+```
+
+## Step 3: Choose Your Integration Scenario
+
+Auth Agent supports three integration patterns. Choose the one that fits your needs:
+
+<CardGroup cols={3}>
+  <Card title="Full Account Access" icon="user-check" href="#scenario-1-full-account-access">
+    Agent uses user's existing account
+  </Card>
+  <Card title="Contextual Profile" icon="link" href="#scenario-2-contextual-profile">
+    Separate agent profile with user context
+  </Card>
+  <Card title="Fresh Profile" icon="sparkles" href="#scenario-3-fresh-profile">
+    Independent agent profile
+  </Card>
+</CardGroup>
+
+---
+
+## Scenario 1: Full Account Access
+
+**Use when:** The agent needs full access to the user's existing account (e.g., e-commerce, banking, email).
+
+### Implementation Steps
+
+<Steps>
+  <Step title="1. Add Sign-In Button">
+    Add the Auth Agent sign-in button to your login page
+  </Step>
+  <Step title="2. Handle Authorization">
+    Redirect to Auth Agent with PKCE parameters
+  </Step>
+  <Step title="3. Handle Callback">
+    Exchange authorization code for tokens
+  </Step>
+  <Step title="4. Get User Email">
+    Call `/userinfo` endpoint to get user's email
+  </Step>
+  <Step title="5. Link to Existing Account">
+    Find user by email and create session with full access
+  </Step>
+</Steps>
+
+### Code Example (Next.js)
+
+```typescript
+// app/auth/signin/page.tsx
+'use client';
+
+import { AuthAgentButton } from 'auth-agent-sdk/client/react';
+
+export default function SignInPage() {
+  return (
+    <div>
+      <h1>Sign In</h1>
+      <AuthAgentButton
+        clientId={process.env.NEXT_PUBLIC_AUTH_AGENT_CLIENT_ID!}
+        redirectUri={`${window.location.origin}/api/auth/callback`}
+        authServerUrl="https://auth.auth-agent.com"
+      />
+    </div>
+  );
+}
+```
+
+```typescript
+// app/api/auth/callback/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { createAuthAgentClient } from 'auth-agent-sdk/client';
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
+
+  if (!code) {
+    return NextResponse.redirect('/auth/error');
+  }
+
+  // Initialize client
+  const client = createAuthAgentClient({
+    authServerUrl: 'https://auth.auth-agent.com',
+    clientId: process.env.AUTH_AGENT_CLIENT_ID!,
+    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
+  });
+
+  // Handle callback (validates state and gets code verifier)
+  const result = client.handleCallback();
+  if (!result) {
+    return NextResponse.redirect('/auth/error');
+  }
+
+  // Exchange code for tokens
+  const tokenResponse = await fetch('https://auth.auth-agent.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'authorization_code',
+      code: result.code,
+      code_verifier: result.codeVerifier,
+      redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
+      client_id: process.env.AUTH_AGENT_CLIENT_ID,
+      client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+    }),
+  });
+
+  const tokens = await tokenResponse.json();
+
+  // STEP 4: Get user email (REQUIRED for Full Account Access)
+  const userResponse = await fetch('https://auth.auth-agent.com/userinfo', {
+    headers: {
+      Authorization: `Bearer ${tokens.access_token}`,
+    },
+  });
+
+  const userInfo = await userResponse.json();
+
+  // STEP 5: Find existing user by email and create session
+  const existingUser = await db.users.findOne({
+    where: { email: userInfo.email }
+  });
+
+  if (!existingUser) {
+    // User doesn't exist - handle registration or error
+    return NextResponse.redirect('/auth/register?email=' + userInfo.email);
+  }
+
+  // Create session with full account access
+  const session = await createSession({
+    userId: existingUser.id,
+    type: 'agent',
+    agentId: userInfo.sub,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+  });
+
+  // Set session cookie
+  const response = NextResponse.redirect('/dashboard');
+  response.cookies.set('session', session.id, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+  });
+
+  return response;
+}
+```
+
+### Key Points
+
+- ✅ **Must call `/userinfo`** to get user email
+- ✅ **Find user by email** in your database
+- ✅ **Create session** with full account access
+- ✅ Agent actions appear as user actions
+
+---
+
+## Scenario 2: Contextual Profile
+
+**Use when:** You want separate agent profiles but need access to user context (e.g., social media, content platforms).
+
+### Implementation Steps
+
+<Steps>
+  <Step title="1. Add Sign-In Button">
+    Add the Auth Agent sign-in button to your login page
+  </Step>
+  <Step title="2. Handle Authorization">
+    Redirect to Auth Agent with PKCE parameters
+  </Step>
+  <Step title="3. Handle Callback">
+    Exchange authorization code for tokens
+  </Step>
+  <Step title="4. Get User Email">
+    Call `/userinfo` endpoint to get user's email
+  </Step>
+  <Step title="5. Create Agent Profile">
+    Create a new agent profile linked to the user's account
+  </Step>
+  <Step title="6. Grant Contextual Access">
+    Agent can read user data but actions are attributed to agent
+  </Step>
+</Steps>
+
+### Code Example (Next.js)
+
+```typescript
+// app/api/auth/callback/route.ts (Contextual Profile)
+import { NextRequest, NextResponse } from 'next/server';
+import { createAuthAgentClient } from 'auth-agent-sdk/client';
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const code = searchParams.get('code');
+
+  if (!code) {
+    return NextResponse.redirect('/auth/error');
+  }
+
+  const client = createAuthAgentClient({
+    authServerUrl: 'https://auth.auth-agent.com',
+    clientId: process.env.AUTH_AGENT_CLIENT_ID!,
+    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
+  });
+
+  const result = client.handleCallback();
+  if (!result) {
+    return NextResponse.redirect('/auth/error');
+  }
+
+  // Exchange code for tokens
+  const tokenResponse = await fetch('https://auth.auth-agent.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'authorization_code',
+      code: result.code,
+      code_verifier: result.codeVerifier,
+      redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
+      client_id: process.env.AUTH_AGENT_CLIENT_ID,
+      client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+    }),
+  });
+
+  const tokens = await tokenResponse.json();
+
+  // STEP 4: Get user email (REQUIRED for Contextual Profile)
+  const userResponse = await fetch('https://auth.auth-agent.com/userinfo', {
+    headers: {
+      Authorization: `Bearer ${tokens.access_token}`,
+    },
+  });
+
+  const userInfo = await userResponse.json();
+
+  // STEP 5: Find or create user by email
+  const user = await db.users.findOrCreate({
+    where: { email: userInfo.email },
+    defaults: { name: userInfo.name },
+  });
+
+  // STEP 6: Create agent profile linked to user
+  const agentProfile = await db.agentProfiles.create({
+    agentId: userInfo.sub,
+    linkedUserId: user.id,
+    name: `${user.name}'s Agent`,
+    model: tokens.model || 'unknown',
+  });
+
+  // Create session for agent profile with contextual access
+  const session = await createSession({
+    agentProfileId: agentProfile.id,
+    linkedUserId: user.id,  // Link for context access
+    type: 'agent_contextual',
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+  });
+
+  const response = NextResponse.redirect('/dashboard');
+  response.cookies.set('session', session.id, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+  });
+
+  return response;
+}
+```
+
+### Access Control Example
+
+```typescript
+// Middleware to handle contextual access
+function requireContextualAccess(req, res, next) {
+  const session = req.session;
+
+  if (session.type !== 'agent_contextual') {
+    return res.status(403).json({ error: 'Invalid session type' });
+  }
+
+  // Agent can read user data
+  req.canReadUserData = true;
+  req.linkedUserId = session.linkedUserId;
+
+  // But writes are attributed to agent
+  req.actorId = session.agentProfileId;
+  req.actorType = 'agent';
+
+  next();
+}
+
+// Example: Agent can read user preferences but posts as agent
+app.post('/api/posts', requireContextualAccess, async (req, res) => {
+  const { linkedUserId, agentProfileId } = req.session;
+
+  // Agent can read user's preferences
+  const userPrefs = await db.preferences.findOne({
+    where: { userId: linkedUserId }
+  });
+
+  // But post is created by the agent
+  const post = await db.posts.create({
+    content: req.body.content,
+    authorId: agentProfileId,
+    authorType: 'agent',
+    visibility: userPrefs.defaultVisibility, // Uses user context
+  });
+
+  res.json(post);
+});
+```
+
+### Key Points
+
+- ✅ **Must call `/userinfo`** to get user email
+- ✅ **Create agent profile** linked to user account
+- ✅ **Agent can read user data** but actions are attributed to agent
+- ✅ Better audit trail and security
+
+---
+
+## Scenario 3: Fresh Profile
+
+**Use when:** You want completely independent agent profiles with no user context (e.g., privacy-focused services, testing).
+
+### Implementation Steps
+
+<Steps>
+  <Step title="1. Add Sign-In Button">
+    Add the Auth Agent sign-in button to your login page
+  </Step>
+  <Step title="2. Handle Authorization">
+    Redirect to Auth Agent with PKCE parameters
+  </Step>
+  <Step title="3. Handle Callback">
+    Exchange authorization code for tokens
+  </Step>
+  <Step title="4. Extract Agent ID">
+    Get agent ID from the JWT token (DO NOT call `/userinfo`)
+  </Step>
+  <Step title="5. Create Fresh Profile">
+    Create a new, independent agent profile
+  </Step>
+</Steps>
+
+### Code Example (Next.js)
+
+```typescript
+// app/api/auth/callback/route.ts (Fresh Profile)
+import { NextRequest, NextResponse } from 'next/server';
+import { createAuthAgentClient } from 'auth-agent-sdk/client';
+import jwt from 'jsonwebtoken';
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const code = searchParams.get('code');
+
+  if (!code) {
+    return NextResponse.redirect('/auth/error');
+  }
+
+  const client = createAuthAgentClient({
+    authServerUrl: 'https://auth.auth-agent.com',
+    clientId: process.env.AUTH_AGENT_CLIENT_ID!,
+    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
+  });
+
+  const result = client.handleCallback();
+  if (!result) {
+    return NextResponse.redirect('/auth/error');
+  }
+
+  // Exchange code for tokens
+  const tokenResponse = await fetch('https://auth.auth-agent.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'authorization_code',
+      code: result.code,
+      code_verifier: result.codeVerifier,
+      redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
+      client_id: process.env.AUTH_AGENT_CLIENT_ID,
+      client_secret: process.env.AUTH_AGENT_CLIENT_SECRET,
+    }),
+  });
+
+  const tokens = await tokenResponse.json();
+
+  // STEP 4: Extract agent ID from JWT (DO NOT call /userinfo)
+  // Note: You don't need to verify the JWT signature for this use case
+  const decoded = jwt.decode(tokens.access_token);
+  const agentId = decoded.sub;
+  const model = decoded.model || 'unknown';
+
+  // STEP 5: Create fresh agent profile (no user linkage)
+  const agentProfile = await db.agentProfiles.create({
+    agentId: agentId,
+    model: model,
+    name: `Agent ${agentId.slice(-6)}`,
+    // No linkedUserId - completely independent
+  });
+
+  // Create session for agent profile
+  const session = await createSession({
+    agentProfileId: agentProfile.id,
+    type: 'agent_fresh',
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+  });
+
+  const response = NextResponse.redirect('/dashboard');
+  response.cookies.set('session', session.id, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+  });
+
+  return response;
+}
+```
+
+### Key Points
+
+- ❌ **Do NOT call `/userinfo`** - no user email needed
+- ✅ **Extract agent ID** from JWT token
+- ✅ **Create independent profile** with no user linkage
+- ✅ Maximum privacy and separation
+
+---
+
+## Comparison Table
+
+| Feature | Full Account | Contextual Profile | Fresh Profile |
+|---------|-------------|-------------------|--------------|
+| **Call `/userinfo`** | ✅ Required | ✅ Required | ❌ Not needed |
+| **User Email Access** | ✅ Yes | ✅ Yes | ❌ No |
+| **Access to User Data** | ✅ Full | ⚠️ Read-only | ❌ None |
+| **Agent Attribution** | ❌ No | ✅ Yes | ✅ Yes |
+| **Privacy Level** | ⚠️ Low | ⚠️ Medium | ✅ High |
+| **Implementation** | 🟢 Simple | 🟡 Medium | 🟢 Simple |
+
+## Decision Guide
+
+<Steps>
+  <Step title="Does the agent need to act on the user's behalf?">
+    **Yes** → Full Account Access (Scenario 1)
+    
+    **No** → Continue to next question
+  </Step>
+  <Step title="Does the agent need user context or preferences?">
+    **Yes** → Contextual Profile (Scenario 2)
+    
+    **No** → Fresh Profile (Scenario 3)
+  </Step>
+  <Step title="Are there strict privacy requirements?">
+    **Yes** → Consider Fresh Profile (Scenario 3)
+    
+    **No** → Choose based on user experience needs
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Scenarios" icon="diagram-project" href="/guides/integration-scenarios">
+    Detailed guide with diagrams
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Complete endpoint documentation
+  </Card>
+  <Card title="Security Best Practices" icon="shield" href="/guides/security">
+    Secure your integration
+  </Card>
+  <Card title="Examples" icon="book-code" href="https://github.com/auth-agent/auth-agent">
+    View more examples on GitHub
+  </Card>
+</CardGroup>
+
+
+
