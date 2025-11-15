@@ -69,13 +69,18 @@ This installs both the SDK and browser-use integration tools.
 
 ## Step 5: Import Auth Agent Tools
 
-The `AuthAgentTools` class is included in the SDK package. Simply import it:
+The `AuthAgentTools` class is included in the SDK package. Import it directly:
 
+```python
+from auth_agent_sdk.agent.browser_use import AuthAgentTools
+```
+
+<Note>
+**Alternative import** (available in future SDK versions):
 ```python
 from auth_agent_sdk.agent import AuthAgentTools
 ```
 
-<Note>
 If you get an `ImportError`, make sure you installed the browser-use extra:
 `pip install auth-agent-sdk[browser-use]`
 </Note>
@@ -89,7 +94,7 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from browser_use import Agent, ChatBrowserUse
-from auth_agent_sdk.agent import AuthAgentTools
+from auth_agent_sdk.agent.browser_use import AuthAgentTools
 
 # Load environment variables
 load_dotenv()
