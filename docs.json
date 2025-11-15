@@ -104,5 +104,10 @@
   "footerSocials": {
     "github": "https://github.com/auth-agent/auth-agent",
     "twitter": "https://x.com/auth_agent"
+  },
+  "seo": {
+    "metatags": {
+      "canonical": "https://docs.auth-agent.com"
+    }
   }
 }
