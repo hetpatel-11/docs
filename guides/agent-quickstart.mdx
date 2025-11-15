@@ -57,149 +57,30 @@ AGENT_SECRET=your_agent_secret_here
 AGENT_MODEL=gpt-4  # or your model identifier
 ```
 
-## Step 4: Create Auth Agent Tools
+## Step 4: Install Browser-Use Integration (Optional)
 
-Create a file `auth_agent_authenticate.py`:
+If you're using browser-use, install the optional dependency:
 
-```python
-"""
-Auth Agent authentication tool for browser-use.
-
-This tool enables AI agents to authenticate with Auth Agent OAuth 2.1 server
-when they encounter the authorization spinning page.
-"""
-
-import os
-from auth_agent_sdk.agent import AuthAgentAgentSDK
-from browser_use.tools.service import Tools
-from browser_use.agent.views import ActionResult
-from browser_use.browser import BrowserSession
-
-class AuthAgentTools(Tools):
-    """Tools for authenticating with Auth Agent OAuth 2.1 server."""
-
-    def __init__(
-        self,
-        agent_id: str = None,
-        agent_secret: str = None,
-        model: str = None,
-    ):
-        """
-        Initialize Auth Agent Tools.
-
-        Args:
-            agent_id: Agent ID (defaults to AGENT_ID env var)
-            agent_secret: Agent secret (defaults to AGENT_SECRET env var)
-            model: Model identifier (defaults to AGENT_MODEL env var or 'browser-use')
-        """
-        super().__init__()
-        
-        self.agent_id = agent_id or os.getenv('AGENT_ID')
-        self.agent_secret = agent_secret or os.getenv('AGENT_SECRET')
-        self.model = model or os.getenv('AGENT_MODEL', 'browser-use')
-        
-        if not self.agent_id or not self.agent_secret:
-            raise ValueError(
-                'Agent ID and secret must be provided either as arguments or via '
-                'AGENT_ID and AGENT_SECRET environment variables'
-            )
-        
-        # Initialize SDK
-        self.sdk = AuthAgentAgentSDK(
-            agent_id=self.agent_id,
-            agent_secret=self.agent_secret,
-            model=self.model,
-        )
-        
-        self.register_auth_agent_tools()
-
-    def register_auth_agent_tools(self):
-        """Register all Auth Agent authentication tools."""
-
-        @self.action(
-            'Authenticate with Auth Agent when you see the spinning authentication page. '
-            'Extract the request_id from the current page and authenticate. '
-            'Use this after clicking "Sign in with Auth Agent" button and the spinning page appears.'
-        )
-        async def authenticate_with_auth_agent(browser_session: BrowserSession) -> ActionResult:
-            """
-            Authenticate with Auth Agent OAuth server.
-            
-            This tool:
-            1. Gets the current page URL
-            2. Extracts request_id from the authorization page
-            3. Authenticates using the agent credentials
-            4. Returns the authentication result
-            """
-            try:
-                # Get current page URL
-                current_url = await browser_session.get_current_page_url()
-                
-                # Extract request_id from window.authRequest on the page
-                js_code = """
-                (function() {
-                    if (window.authRequest && window.authRequest.request_id) {
-                        return window.authRequest.request_id;
-                    }
-                    return null;
-                })()
-                """
-                
-                # Get CDP session and evaluate JavaScript
-                cdp_session = await browser_session.get_or_create_cdp_session()
-                result = await cdp_session.cdp_client.send.Runtime.evaluate(
-                    params={'expression': js_code, 'returnByValue': True, 'awaitPromise': True},
-                    session_id=cdp_session.session_id,
-                )
-                
-                request_id = result.get('result', {}).get('value')
-                
-                if not request_id:
-                    return ActionResult(
-                        extracted_content='window.authRequest.request_id not found on page',
-                        error='Request ID not found',
-                        success=False
-                    )
-                
-                # Authenticate
-                auth_result = await self.sdk.authenticate_async(request_id, current_url)
-                
-                if not auth_result.get('success'):
-                    error_msg = auth_result.get('error_description') or 'Authentication failed'
-                    return ActionResult(
-                        extracted_content=f'Authentication failed: {error_msg}',
-                        error=error_msg,
-                        success=False
-                    )
-                
-                # Wait for authentication to complete
-                final_status = await self.sdk.wait_for_authentication_async(
-                    request_id,
-                    current_url,
-                    poll_interval=0.5,
-                    timeout=30.0,
-                )
-                
-                auth_code = final_status.get('code', '')
-                
-                return ActionResult(
-                    extracted_content=(
-                        f'✅ Successfully authenticated with Auth Agent!\n'
-                        f'Authorization code: {auth_code[:30]}...\n'
-                        f'The page will redirect automatically to complete the OAuth flow.'
-                    ),
-                    long_term_memory=f'Authenticated with Auth Agent using request_id {request_id}'
-                )
-                    
-            except Exception as e:
-                return ActionResult(
-                    extracted_content=f'Error during authentication: {str(e)}',
-                    error=str(e),
-                    success=False
-                )
+```bash
+pip install auth-agent-sdk[browser-use]
 ```
 
-## Step 5: Use in Your Agent
+This installs both the SDK and browser-use integration tools.
+
+## Step 5: Import Auth Agent Tools
+
+The `AuthAgentTools` class is included in the SDK package. Simply import it:
+
+```python
+from auth_agent_sdk.agent import AuthAgentTools
+```
+
+<Note>
+If you get an `ImportError`, make sure you installed the browser-use extra:
+`pip install auth-agent-sdk[browser-use]`
+</Note>
+
+## Step 6: Use in Your Agent
 
 Create your agent script:
 
@@ -208,7 +89,7 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from browser_use import Agent, ChatBrowserUse
-from auth_agent_authenticate import AuthAgentTools
+from auth_agent_sdk.agent import AuthAgentTools
 
 # Load environment variables
 load_dotenv()
