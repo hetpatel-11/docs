@@ -1,6 +1,5 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
+  "$schema": "https://mintlify.com/schema.json",
   "name": "Auth Agent",
   "logo": {
     "light": "/logo/light.png",
@@ -12,125 +11,95 @@
     "light": "#FB923C",
     "dark": "#EA580C"
   },
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Documentation",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": [
-              "index",
-              "quickstart",
-              "guides/agent-quickstart",
-              "guides/website-quickstart"
-            ]
-          },
-          {
-            "group": "Console Setup",
-            "pages": [
-              "guides/console",
-              "guides/console-authentication",
-              "guides/database-schema"
-            ]
-          },
-          {
-            "group": "Integration Guides",
-            "pages": [
-              "guides/integration-scenarios"
-            ]
-          },
-          {
-            "group": "Security & Advanced",
-            "pages": [
-              "guides/security"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "api-reference/overview"
-            ]
-          },
-          {
-            "group": "OAuth Endpoints",
-            "pages": [
-              "api-reference/oauth/authorize",
-              "api-reference/oauth/token",
-              "api-reference/oauth/userinfo",
-              "api-reference/oauth/introspect",
-              "api-reference/oauth/revoke"
-            ]
-          },
-          {
-            "group": "Agent Back-Channel",
-            "pages": [
-              "api-reference/agent/authenticate",
-              "api-reference/agent/check-status"
-            ]
-          },
-          {
-            "group": "Discovery",
-            "pages": [
-              "api-reference/discovery"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "index",
+        "quickstart",
+        "guides/agent-quickstart",
+        "guides/website-quickstart"
+      ]
+    },
+    {
+      "group": "Console Setup",
+      "pages": [
+        "guides/console",
+        "guides/console-authentication",
+        "guides/database-schema"
+      ]
+    },
+    {
+      "group": "Integration Guides",
+      "pages": [
+        "guides/integration-scenarios"
+      ]
+    },
+    {
+      "group": "Security & Advanced",
+      "pages": [
+        "guides/security"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/overview",
+        "api-reference/introduction",
         {
-          "anchor": "Console",
-          "href": "https://auth-agent.com/console",
-          "icon": "terminal"
+          "group": "OAuth Endpoints",
+          "pages": [
+            "api-reference/oauth/authorize",
+            "api-reference/oauth/token",
+            "api-reference/oauth/userinfo",
+            "api-reference/oauth/introspect",
+            "api-reference/oauth/revoke"
+          ]
         },
         {
-          "anchor": "GitHub",
-          "href": "https://github.com/auth-agent/auth-agent",
-          "icon": "github"
+          "group": "Agent Back-Channel",
+          "pages": [
+            "api-reference/agent/authenticate",
+            "api-reference/agent/check-status"
+          ]
+        },
+        {
+          "group": "Discovery",
+          "pages": [
+            "api-reference/discovery"
+          ]
         }
       ]
     }
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Agent Console",
-        "href": "https://auth-agent.com/console/agent"
-      },
-      {
-        "label": "Website Console",
-        "href": "https://auth-agent.com/console/website"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Get Started",
-      "href": "https://auth-agent.com/console"
+  ],
+  "topbarLinks": [
+    {
+      "name": "Agent Console",
+      "url": "https://auth-agent.com/console/agent"
+    },
+    {
+      "name": "Website Console",
+      "url": "https://auth-agent.com/console/website"
     }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "https://auth-agent.com/console"
   },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/auth-agent/auth-agent",
-      "x": "https://x.com/auth_agent"
+  "anchors": [
+    {
+      "name": "Console",
+      "url": "https://auth-agent.com/console",
+      "icon": "terminal"
+    },
+    {
+      "name": "GitHub",
+      "url": "https://github.com/auth-agent/auth-agent",
+      "icon": "github"
     }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/auth-agent/auth-agent",
+    "twitter": "https://x.com/auth_agent"
   }
 }
