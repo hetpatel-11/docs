@@ -1,0 +1,5 @@
+node_modules/
+.mint/
+mint/
+.DS_Store
+
