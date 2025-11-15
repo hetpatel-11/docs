@@ -29,8 +29,9 @@
    ```
    Type: CNAME
    Name: docs
-   Value: cname.mintlify-dns.com.
+   Value: cname.vercel-dns.com.
    ```
+   **Note:** Mintlify uses Vercel for hosting, so the CNAME points to Vercel's DNS.
 3. Save the DNS record
 
 ### Step 5: Remove from Wrong Project (if needed)
@@ -56,9 +57,21 @@ After setup:
 ```
 Type: CNAME
 Name: docs
-Value: cname.mintlify-dns.com.
+Value: cname.vercel-dns.com.
 TTL: Auto (or 3600)
 ```
+
+**Important:** Mintlify uses Vercel for hosting, so the CNAME must point to `cname.vercel-dns.com.` (not `cname.mintlify-dns.com.`)
+
+## Verify DNS Configuration
+
+1. Go to: https://dnschecker.org
+2. Enter domain: `docs.auth-agent.com`
+3. Select record type: **CNAME**
+4. Click "Search"
+5. Verify it resolves to: `cname.vercel-dns.com.`
+
+If it doesn't resolve correctly, update your DNS record at your domain provider.
 
 ## Important Notes
 
