@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "OAuth 2.1 Authentication for AI Agents Documentation",
   "repository": "hetpatel-11/docs",
-  "configFile": "mint.json"
+  "configFile": "docs.json"
 }
 
