@@ -12,67 +12,69 @@
     "light": "#FB923C",
     "dark": "#EA580C"
   },
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": [
-        "index",
-        "quickstart",
-        "guides/agent-quickstart",
-        "guides/website-quickstart"
-      ]
-    },
-    {
-      "group": "Console Setup",
-      "pages": [
-        "guides/console",
-        "guides/console-authentication",
-        "guides/database-schema"
-      ]
-    },
-    {
-      "group": "Integration Guides",
-      "pages": [
-        "guides/integration-scenarios"
-      ]
-    },
-    {
-      "group": "Security & Advanced",
-      "pages": [
-        "guides/security"
-      ]
-    },
-    {
-      "group": "API Reference",
-      "pages": [
-        "api-reference/overview",
-        "api-reference/introduction"
-      ]
-    },
-    {
-      "group": "OAuth Endpoints",
-      "pages": [
-        "api-reference/oauth/authorize",
-        "api-reference/oauth/token",
-        "api-reference/oauth/userinfo",
-        "api-reference/oauth/introspect",
-        "api-reference/oauth/revoke"
-      ]
-    },
-    {
-      "group": "Agent Back-Channel",
-      "pages": [
-        "api-reference/agent/authenticate",
-        "api-reference/agent/check-status"
-      ]
-    },
-    {
-      "group": "Discovery",
-      "pages": [
-        "api-reference/discovery"
-      ]
-    }
-  ],
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "index",
+          "quickstart",
+          "guides/agent-quickstart",
+          "guides/website-quickstart"
+        ]
+      },
+      {
+        "group": "Console Setup",
+        "pages": [
+          "guides/console",
+          "guides/console-authentication",
+          "guides/database-schema"
+        ]
+      },
+      {
+        "group": "Integration Guides",
+        "pages": [
+          "guides/integration-scenarios"
+        ]
+      },
+      {
+        "group": "Security & Advanced",
+        "pages": [
+          "guides/security"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": [
+          "api-reference/overview",
+          "api-reference/introduction"
+        ]
+      },
+      {
+        "group": "OAuth Endpoints",
+        "pages": [
+          "api-reference/oauth/authorize",
+          "api-reference/oauth/token",
+          "api-reference/oauth/userinfo",
+          "api-reference/oauth/introspect",
+          "api-reference/oauth/revoke"
+        ]
+      },
+      {
+        "group": "Agent Back-Channel",
+        "pages": [
+          "api-reference/agent/authenticate",
+          "api-reference/agent/check-status"
+        ]
+      },
+      {
+        "group": "Discovery",
+        "pages": [
+          "api-reference/discovery"
+        ]
+      }
+    ]
+  },
   "topbarLinks": [
     {
       "name": "Agent Console",
