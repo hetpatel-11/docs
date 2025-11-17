@@ -110,5 +110,17 @@
     "metatags": {
       "canonical": "https://docs.auth-agent.com"
     }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   }
 }
