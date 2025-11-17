@@ -39,3 +39,7 @@ A test commit was made to verify Mintlify deployment:
 2. Verify deployment log shows "Successfully indexed 19 page(s)"
 3. Check live site shows Auth Agent content (not starter kit)
 
+
+
+
+
