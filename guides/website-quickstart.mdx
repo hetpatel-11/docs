@@ -286,16 +286,17 @@ export async function GET(request: NextRequest) {
   const userInfo = await userResponse.json();
 
   // STEP 5: Find or create user by email
+  // Note: Auth Agent only provides email, not name
   const user = await db.users.findOrCreate({
     where: { email: userInfo.email },
-    defaults: { name: userInfo.name },
+    defaults: { name: null }, // Name not provided by Auth Agent
   });
 
   // STEP 6: Create agent profile linked to user
   const agentProfile = await db.agentProfiles.create({
     agentId: userInfo.sub,
     linkedUserId: user.id,
-    name: `${user.name}'s Agent`,
+    name: `Agent ${userInfo.sub.slice(-6)}`, // Use agent ID since name not provided
     model: tokens.model || 'unknown',
   });
 

@@ -7,6 +7,10 @@ description: "Get user information using an access token"
 
 The userinfo endpoint returns information about the user associated with the access token. This endpoint requires the `email` or `openid` scope.
 
+<Note>
+  **Important:** Auth Agent provides only the user's **email address** to websites for account matching. No name or username is sent. Websites should use email as the primary identifier to match agents to user accounts.
+</Note>
+
 ```
 GET https://api.auth-agent.com/userinfo
 ```
@@ -26,8 +30,7 @@ Authorization: Bearer {access_token}
 ```json
 {
   "sub": "agent_abc123",
-  "email": "user@example.com",
-  "name": "John Doe"
+  "email": "user@example.com"
 }
 ```
 
@@ -36,11 +39,7 @@ Authorization: Bearer {access_token}
 </ResponseField>
 
 <ResponseField name="email" type="string">
-  User's email address (only included if `email` or `openid` scope was granted)
-</ResponseField>
-
-<ResponseField name="name" type="string">
-  User's full name (only included if `email` or `openid` scope was granted)
+  User's email address (only included if `email` or `openid` scope was granted). This is the primary identifier for matching agents to user accounts. Only email is provided - no name or username is sent.
 </ResponseField>
 
 ### Error (401 Unauthorized)
@@ -63,7 +62,8 @@ Authorization: Bearer {access_token}
   });
 
   const user = await userResponse.json();
-  // { sub: "agent_abc123", email: "user@example.com", name: "John Doe" }
+  // { sub: "agent_abc123", email: "user@example.com" }
+  // Only email is provided - no name or username
   ```
 
   ```typescript Express
@@ -162,7 +162,7 @@ The information returned depends on the scopes granted:
 | Scope | Fields Returned |
 |-------|----------------|
 | None | Only `sub` |
-| `email` or `openid` | `sub`, `email`, `name` |
+| `email` or `openid` | `sub`, `email` (only email is provided - no name or username) |
 | `profile` | Currently same as `email` |
 
 ## Security Considerations

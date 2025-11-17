@@ -169,16 +169,18 @@ async function handleContextualProfile(code: string, codeVerifier: string) {
   }).then(r => r.json());
 
   // Find or create user by email
+  // Note: Only email is provided, not name
   const user = await db.users.findOrCreate({
     where: { email: userInfo.email },
-    defaults: { name: userInfo.name },
+    defaults: { name: null }, // Name not provided by Auth Agent
   });
 
   // Create agent profile linked to user
+  // Note: Only email is provided, not name
   const agentProfile = await db.agentProfiles.create({
     agentId: userInfo.sub,
     linkedUserId: user.id,
-    name: `${user.name}'s Agent`,
+    name: `Agent ${userInfo.sub.slice(-6)}`, // Use agent ID since name not provided
     model: extractModelFromToken(tokens.access_token),
   });
 
