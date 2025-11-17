@@ -25,11 +25,9 @@
         ]
       },
       {
-        "group": "Console Setup",
+        "group": "Guides",
         "pages": [
-          "guides/console",
-          "guides/console-authentication",
-          "guides/database-schema"
+          "guides/console"
         ]
       },
       {
