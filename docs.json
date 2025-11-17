@@ -7,7 +7,7 @@
     "dark": "/logo/AA.png",
     "href": "https://auth-agent.com"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/logo/AA.png",
   "colors": {
     "primary": "#F97316",
     "light": "#FB923C",
