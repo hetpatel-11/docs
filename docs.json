@@ -3,8 +3,9 @@
   "name": "Auth Agent",
   "theme": "mint",
   "logo": {
-    "light": "/logo/light.png",
-    "dark": "/logo/dark.png"
+    "light": "/logo/AA.png",
+    "dark": "/logo/AA.png",
+    "href": "https://auth-agent.com"
   },
   "favicon": "/favicon.svg",
   "colors": {
