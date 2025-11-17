@@ -512,6 +512,26 @@ export async function GET(request: NextRequest) {
   </Step>
 </Steps>
 
+## Real-World Example: Profilio
+
+Profilio is a production website that implements Auth Agent with the **Contextual Profile** scenario. It demonstrates:
+
+- ✅ Complete OAuth 2.1 flow with PKCE
+- ✅ User matching via `/userinfo` endpoint
+- ✅ Agent profile linked to user accounts
+- ✅ Dashboard showing user context when agent is linked
+- ✅ Next.js implementation with Supabase backend
+
+<Card title="View Profilio Example" icon="github" href="https://github.com/auth-agent/auth-agent/tree/master/Profilio">
+  See the complete implementation in the Auth Agent repository
+</Card>
+
+**Key Features:**
+- User email matching to link agents to existing accounts
+- Separate agent profiles with access to user context
+- Social links and profile data shared between agent and user
+- Full TypeScript implementation with type safety
+
 ## Next Steps
 
 <CardGroup cols={2}>
