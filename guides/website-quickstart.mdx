@@ -108,7 +108,7 @@ export default function SignInPage() {
       <AuthAgentButton
         clientId={process.env.NEXT_PUBLIC_AUTH_AGENT_CLIENT_ID!}
         redirectUri={`${window.location.origin}/api/auth/callback`}
-        authServerUrl="https://auth.auth-agent.com"
+        authServerUrl="https://api.auth-agent.com"
       />
     </div>
   );
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 
   // Initialize client
   const client = createAuthAgentClient({
-    authServerUrl: 'https://auth.auth-agent.com',
+    authServerUrl: 'https://api.auth-agent.com',
     clientId: process.env.AUTH_AGENT_CLIENT_ID!,
     redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
   });
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Exchange code for tokens
-  const tokenResponse = await fetch('https://auth.auth-agent.com/token', {
+  const tokenResponse = await fetch('https://api.auth-agent.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
   const tokens = await tokenResponse.json();
 
   // STEP 4: Get user email (REQUIRED for Full Account Access)
-  const userResponse = await fetch('https://auth.auth-agent.com/userinfo', {
+  const userResponse = await fetch('https://api.auth-agent.com/userinfo', {
     headers: {
       Authorization: `Bearer ${tokens.access_token}`,
     },
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
   }
 
   const client = createAuthAgentClient({
-    authServerUrl: 'https://auth.auth-agent.com',
+    authServerUrl: 'https://api.auth-agent.com',
     clientId: process.env.AUTH_AGENT_CLIENT_ID!,
     redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
   });
@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Exchange code for tokens
-  const tokenResponse = await fetch('https://auth.auth-agent.com/token', {
+  const tokenResponse = await fetch('https://api.auth-agent.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -277,7 +277,7 @@ export async function GET(request: NextRequest) {
   const tokens = await tokenResponse.json();
 
   // STEP 4: Get user email (REQUIRED for Contextual Profile)
-  const userResponse = await fetch('https://auth.auth-agent.com/userinfo', {
+  const userResponse = await fetch('https://api.auth-agent.com/userinfo', {
     headers: {
       Authorization: `Bearer ${tokens.access_token}`,
     },
@@ -413,7 +413,7 @@ export async function GET(request: NextRequest) {
   }
 
   const client = createAuthAgentClient({
-    authServerUrl: 'https://auth.auth-agent.com',
+    authServerUrl: 'https://api.auth-agent.com',
     clientId: process.env.AUTH_AGENT_CLIENT_ID!,
     redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`,
   });
@@ -424,7 +424,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Exchange code for tokens
-  const tokenResponse = await fetch('https://auth.auth-agent.com/token', {
+  const tokenResponse = await fetch('https://api.auth-agent.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
