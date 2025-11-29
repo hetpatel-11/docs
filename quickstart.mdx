@@ -5,87 +5,110 @@ description: "Get started with Auth Agent in minutes"
 
 ## Choose Your Path
 
-Auth Agent serves two distinct audiences. Choose the path that matches your role:
-
 <Tabs>
-  <Tab title="🤖 For AI Agent Users">
-    <Card title="Quick Start for Agents" icon="robot" href="/guides/agent-quickstart">
-      Learn how to authenticate your AI agents with websites using browser-use integration
+  <Tab title="For Website Developers">
+    
+    Add "Sign in with Auth Agent" to let AI agents authenticate on your site.
+
+    ### Using Better Auth (Recommended)
+
+    If you use [Better Auth](https://better-auth.com), it takes 2 minutes:
+
+    **1. Get credentials** at [auth-agent.com/console/website](https://auth-agent.com/console/website)
+
+    **2. Install**
+    ```bash
+    npm install auth-agent-better-auth
+    ```
+
+    **3. Add plugin**
+    ```typescript
+    // lib/auth.ts
+    import { betterAuth } from "better-auth";
+    import { authAgent } from "auth-agent-better-auth/server";
+
+    export const auth = betterAuth({
+      database: /* your db */,
+      plugins: [
+        authAgent({
+          clientId: process.env.AUTH_AGENT_CLIENT_ID!,
+          clientSecret: process.env.AUTH_AGENT_CLIENT_SECRET!,
+        })
+      ]
+    });
+    ```
+
+    **4. Add button**
+    ```tsx
+    import { AuthAgentButton } from "auth-agent-better-auth/components";
+
+    <AuthAgentButton callbackURL="/dashboard" />
+    ```
+
+    Done. OAuth 2.1, PKCE, sessions - all handled.
+
+    <Card title="Full Website Guide" icon="book" href="/guides/website-quickstart">
+      Manual integration and all three scenarios
     </Card>
-    
-    ## What You'll Learn
-    
-    - How to create agent credentials
-    - How to use Auth Agent with browser-use
-    - How your agent authenticates automatically
-    - Real-world example with code
-    
-    <Steps>
-      <Step title="Create Agent Credentials">
-        Visit the [Agent Console](https://auth-agent.com/console/agent) to create your agent credentials
-      </Step>
-      <Step title="Install SDK">
-        Install the Auth Agent SDK for Python
-      </Step>
-      <Step title="Integrate with browser-use">
-        Add Auth Agent tools to your browser-use agent
-      </Step>
-      <Step title="Test Authentication">
-        Your agent will automatically authenticate when needed
-      </Step>
-    </Steps>
-    
-    <Card title="View Complete Agent Guide" icon="book" href="/guides/agent-quickstart">
-      See the full guide with browser-use example
-    </Card>
+
   </Tab>
 
-  <Tab title="🌐 For Website Developers">
-    <Card title="Quick Start for Websites" icon="globe" href="/guides/website-quickstart">
-      Learn how to integrate Auth Agent into your website to allow AI agent authentication
+  <Tab title="For AI Agent Developers">
+    
+    Authenticate your AI agents on any website that supports Auth Agent.
+
+    **1. Get credentials** at [auth-agent.com/console/agent](https://auth-agent.com/console/agent)
+
+    **2. Add to your browser-use agent**
+    ```python
+    import os
+    import asyncio
+    from dotenv import load_dotenv
+    from auth_agent_authenticate import AuthAgentTools
+    from browser_use import Agent, ChatBrowserUse
+
+    load_dotenv()
+
+    async def main():
+        tools = AuthAgentTools(
+            agent_id=os.getenv('AGENT_ID'),
+            agent_secret=os.getenv('AGENT_SECRET'),
+            model='browser-use',
+        )
+        
+        task = (
+            "Go to https://example.com and click 'Sign in with Auth Agent'. "
+            "When the auth page appears, use authenticate_with_auth_agent."
+        )
+        
+        agent = Agent(task=task, llm=ChatBrowserUse(), tools=tools)
+        await agent.run()
+
+    asyncio.run(main())
+    ```
+
+    The tool automatically handles the authentication flow.
+
+    <Card title="Full Agent Guide" icon="book" href="/guides/agent-quickstart">
+      Complete browser-use integration guide
     </Card>
-    
-    ## What You'll Learn
-    
-    - How to register your OAuth client
-    - How to implement the OAuth flow
-    - How to handle the three integration scenarios
-    - Code examples for each scenario
-    
-    <Steps>
-      <Step title="Register OAuth Client">
-        Visit the [Website Console](https://auth-agent.com/console/website) to register your client
-      </Step>
-      <Step title="Choose Integration Scenario">
-        Decide which scenario fits your needs (Full Account, Contextual Profile, or Fresh Profile)
-      </Step>
-      <Step title="Implement OAuth Flow">
-        Add the authorization flow to your website
-      </Step>
-      <Step title="Handle Callback">
-        Process the authorization code and create the appropriate session
-      </Step>
-    </Steps>
-    
-    <Card title="View Complete Website Guide" icon="book" href="/guides/website-quickstart">
-      See the full guide with all three integration scenarios
-    </Card>
+
   </Tab>
 </Tabs>
 
 ## Need Help?
 
 <CardGroup cols={2}>
-  <Card title="Agent Documentation" icon="robot" href="/guides/agent-quickstart">
-    Complete guide for AI agent users
-  </Card>
   <Card title="Website Documentation" icon="globe" href="/guides/website-quickstart">
-    Complete guide for website developers
+    Integration guide for websites
+  </Card>
+  <Card title="Agent Documentation" icon="robot" href="/guides/agent-quickstart">
+    Guide for AI agent developers
   </Card>
   <Card title="API Reference" icon="code" href="/api-reference/overview">
     Complete endpoint documentation
   </Card>
   <Card title="GitHub" icon="github" href="https://github.com/auth-agent/auth-agent">
-    View source code and examples
+    Source code and examples
   </Card>
 </CardGroup>
